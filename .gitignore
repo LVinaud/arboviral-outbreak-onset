@@ -1,0 +1,9 @@
+dados/
+*.joblib
+.ipynb_checkpoints/
+__pycache__/
+.venv/
+
+coleta_prod.log
+*.log
+data/raw/
