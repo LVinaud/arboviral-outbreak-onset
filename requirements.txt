@@ -1,0 +1,29 @@
+# Python 3.12
+# Pinned to the versions the published results were produced with.
+# Install with:  pip install -r requirements.txt
+
+# Core
+pandas==3.0.5
+numpy==2.5.3
+pyarrow==25.0.1
+scipy==1.18.1
+
+# Models
+scikit-learn==1.9.0
+xgboost==3.4.1
+lightgbm==4.7.0
+joblib==1.6.0
+
+# Interpretation and figures
+shap==0.52.0
+matplotlib==3.11.1
+
+# Collection (01_data_collection only)
+requests==2.34.2
+selenium==4.48.0
+beautifulsoup4==4.15.0
+openpyxl==3.1.5
+python-calamine==0.8.2
+dbfread==2.0.7
+pyreaddbc==2.0.4
+tqdm==4.70.0
