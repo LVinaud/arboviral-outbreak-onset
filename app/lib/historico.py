@@ -47,8 +47,8 @@ def casos_por_mes(doenca: str) -> pd.DataFrame:
     nenhuma notificação naquele município naquele mês.
     """
     col = f"{doenca}_casos"
-    m = pd.read_parquet(dados.DIR_MESTRE / "municipio_mes.parquet",
-                        columns=["cod_ibge", "ano", "mes", "pop_residente", col])
+    m = dados.ler_parquet("master/municipio_mes.parquet",
+                          columns=["cod_ibge", "ano", "mes", "pop_residente", col])
     m = m.rename(columns={col: "casos"})
     m["casos"] = m["casos"].fillna(0)
     # Incidência com a população daquele ano, não a de hoje.
@@ -150,7 +150,7 @@ def maximo_absoluto() -> float:
     """Maior número de casos num município em um mês, somando todas as doenças
     da tabela. Hoje é a cidade de São Paulo em abril de 2024, com dengue."""
     cols = [f"{d}_casos" for d in dados.DOENCAS]
-    m = pd.read_parquet(dados.DIR_MESTRE / "municipio_mes.parquet")
+    m = dados.ler_parquet("master/municipio_mes.parquet")
     return float(m[[c for c in cols if c in m.columns]].max().max())
 
 

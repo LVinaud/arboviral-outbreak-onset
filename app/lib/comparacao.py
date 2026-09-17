@@ -97,7 +97,7 @@ def tabela_indicadores() -> pd.DataFrame:
     colunas = ["cod_ibge", "ano", "mes", "pop_residente", "esf_qt_equipes",
                "dengue_latencia_mediana"]
     colunas += [i.coluna for i in INDICADORES]
-    m = pd.read_parquet(dados.DIR_MESTRE / "municipio_mes.parquet")
+    m = dados.ler_parquet("master/municipio_mes.parquet")
     m = m[[c for c in dict.fromkeys(colunas) if c in m.columns]]
     m = m.sort_values(["cod_ibge", "ano", "mes"])
     # Equipes em números absolutos enganam entre portes: três equipes são muito

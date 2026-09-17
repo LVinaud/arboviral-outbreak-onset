@@ -1,6 +1,6 @@
 """Carregamento dos modelos de produção e explicação por SHAP.
 
-Os modelos ficam em `data/train/models_producao/`, um por doença, definição,
+Os modelos ficam em `train/models_producao/` (ver `dados.arquivo`), um por doença, definição,
 horizonte e tipo. São os que o `03_train` ajusta com toda a série rotulada, ao
 contrário dos de `models/`, que são por fold e servem para reproduzir o artigo.
 
@@ -16,7 +16,7 @@ import pandas as pd
 import streamlit as st
 
 from i18n import t
-from lib.dados import DIR_MODELOS
+from lib.dados import arquivo
 
 EXCLUIR = ["cod_ibge", "ano", "mes", "target", "target_year"]
 
@@ -28,8 +28,8 @@ def carregar_modelo(doenca: str, definicao: str, h: int, tipo: str):
     `cache_resource` e não `cache_data`: o objeto é um modelo treinado, não
     serializa bem e não deve ser copiado a cada acesso.
     """
-    caminho = DIR_MODELOS / f"{doenca}_{definicao}_h{h}_{tipo}.joblib"
-    if not caminho.exists():
+    caminho = arquivo(f"train/models_producao/{doenca}_{definicao}_h{h}_{tipo}.joblib")
+    if caminho is None:
         return None
     return joblib.load(caminho)
 

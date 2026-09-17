@@ -9,7 +9,10 @@ as telas e o `lib/modelos.py`.
 
 Doenças, definições, modelos, faixas e situações circulam como códigos
 ("dengue", "rf", "alto"); o nome no idioma da tela sai das funções `nome_*`.
+
+Onde ficam os arquivos: ver `arquivo`.
 """
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -18,12 +21,48 @@ import streamlit as st
 from i18n import mes_extenso, numero, t
 
 RAIZ = Path(__file__).resolve().parents[2]
-DIR_TREINO = RAIZ / "data" / "train"
-DIR_MESTRE = RAIZ / "data" / "master"
-DIR_PREV = DIR_TREINO / "predictions_producao"
-DIR_MODELOS = DIR_TREINO / "models_producao"
-ARQ_LIMIARES = DIR_TREINO / "limiares_operacao.parquet"
-ARQ_GEO = RAIZ / "data" / "lookup" / "municipios_sp_estacoes_inmet.xlsx"
+
+# Os arquivos que o app lê têm sempre o mesmo caminho relativo, com as pastas
+# train/ (o que o 03_train grava), master/ e lookup/. Na máquina de quem roda o
+# pipeline, eles estão no data/ do repositório. Num clone sem data/train/, como
+# o do Streamlit Community Cloud, cada arquivo que falta é baixado do
+# repositório de dados público no Hugging Face Hub, que tem o mesmo layout e é
+# atualizado pelo deploy/publicar.py. ARBOVIRAL_DADOS troca a pasta local e
+# ARBOVIRAL_HF_REPO troca o repositório; ARBOVIRAL_HF_REPO vazio desliga o
+# download.
+HF_REPO_PADRAO = "LVinaud/arboviral-alerta-dados"
+DIR_DADOS = Path(os.environ.get("ARBOVIRAL_DADOS") or RAIZ / "data")
+HF_REPO = os.environ.get("ARBOVIRAL_HF_REPO", HF_REPO_PADRAO).strip() or None
+
+
+def arquivo(relativo: str) -> Path | None:
+    """Caminho local de um arquivo de dados, ou None se ele não existir.
+
+    Usa a cópia local quando há uma; senão, baixa do repositório de dados
+    (e o Hugging Face guarda em cache, então só a primeira vez é lenta)."""
+    local = DIR_DADOS / relativo
+    if local.exists():
+        return local
+    if HF_REPO is None:
+        return None
+    from huggingface_hub import hf_hub_download
+    from huggingface_hub.errors import EntryNotFoundError
+
+    try:
+        return Path(hf_hub_download(HF_REPO, relativo, repo_type="dataset"))
+    except EntryNotFoundError:
+        return None
+
+
+def ler_parquet(relativo: str, **kw) -> pd.DataFrame:
+    caminho = arquivo(relativo)
+    if caminho is None:
+        raise FileNotFoundError(
+            f"{relativo} não está em {DIR_DADOS}"
+            + (f" nem em {HF_REPO}" if HF_REPO else
+               "; rode o pipeline ou defina ARBOVIRAL_HF_REPO"))
+    return pd.read_parquet(caminho, **kw)
+
 
 DOENCAS = ["dengue", "zika", "chikungunya", "fa"]
 DEFINICOES = ["inc100", "inc300", "canal", "zscore"]
@@ -222,10 +261,8 @@ def faixa_de(p: float, corte: float) -> str:
 @st.cache_data(show_spinner=False)
 def municipios() -> pd.DataFrame:
     """Código, nome e população mais recente de cada município."""
-    m = pd.read_parquet(
-        DIR_MESTRE / "municipio_mes.parquet",
-        columns=["cod_ibge", "municipio", "ano", "mes", "pop_residente"],
-    )
+    m = ler_parquet("master/municipio_mes.parquet",
+                    columns=["cod_ibge", "municipio", "ano", "mes", "pop_residente"])
     ultimo = m.sort_values(["ano", "mes"]).groupby("cod_ibge").tail(1)
     return ultimo[["cod_ibge", "municipio", "pop_residente"]].reset_index(drop=True)
 
@@ -233,7 +270,7 @@ def municipios() -> pd.DataFrame:
 @st.cache_data(show_spinner=False)
 def rotulos() -> pd.DataFrame:
     """As dezesseis colunas de surto, uma por doença e definição."""
-    return pd.read_parquet(DIR_MESTRE / "labels.parquet")
+    return ler_parquet("master/labels.parquet")
 
 
 @st.cache_data(show_spinner=False)
@@ -243,10 +280,8 @@ def previsoes(doenca: str, definicao: str, h: int) -> pd.DataFrame | None:
     Devolve None quando a combinação não foi treinada, o que acontece nas seis
     que nunca registram surto em série nenhuma.
     """
-    caminho = DIR_PREV / f"{doenca}_{definicao}_h{h}.parquet"
-    if not caminho.exists():
-        return None
-    return pd.read_parquet(caminho)
+    caminho = arquivo(f"train/predictions_producao/{doenca}_{definicao}_h{h}.parquet")
+    return None if caminho is None else pd.read_parquet(caminho)
 
 
 def _oferecidas() -> pd.DataFrame | None:
@@ -279,22 +314,17 @@ def combinacoes_disponiveis() -> pd.DataFrame:
        longas.
 
     Das 90 combinações treinadas, 48 ficam.
-    """
-    linhas = []
-    for f in sorted(DIR_PREV.glob("*.parquet")):
-        partes = f.stem.rsplit("_h", 1)
-        if len(partes) != 2:
-            continue
-        doenca, definicao = partes[0].split("_", 1)
-        linhas.append({"doenca": doenca, "definicao": definicao, "h": int(partes[1])})
-    treinadas = pd.DataFrame(linhas, columns=["doenca", "definicao", "h"])
 
+    Sai só do arquivo de cortes, sem listar a pasta de previsões: num servidor
+    sem os dados, listar a pasta obrigaria a baixar as 90 tabelas antes de
+    abrir a primeira tela. A previsão de cada combinação é lida quando pedida.
+    """
     ok = _oferecidas()
-    if ok is None or treinadas.empty:
-        return treinadas.iloc[0:0]
-    validas = (ok[["disease", "definition", "h"]].drop_duplicates()
-               .rename(columns={"disease": "doenca", "definition": "definicao"}))
-    return treinadas.merge(validas, on=["doenca", "definicao", "h"], how="inner")
+    if ok is None:
+        return pd.DataFrame(columns=["doenca", "definicao", "h"])
+    return (ok[["disease", "definition", "h"]].drop_duplicates()
+            .rename(columns={"disease": "doenca", "definition": "definicao"})
+            .astype({"h": int}).reset_index(drop=True))
 
 
 def modelos_oferecidos(doenca: str, definicao: str, h: int) -> list[str]:
@@ -316,7 +346,7 @@ def features() -> pd.DataFrame:
     É o que o SHAP explica. Vem pronta do `03_train` para o app não precisar
     reconstruí-la, o que levaria cerca de trinta segundos por sessão.
     """
-    return pd.read_parquet(DIR_TREINO / "features.parquet")
+    return ler_parquet("train/features.parquet")
 
 
 def mes_por_extenso(ano: int, mes: int) -> str:
@@ -333,9 +363,8 @@ def limiares() -> pd.DataFrame | None:
     o corte cai com a antecedência: no Random Forest, de 0,60 em h=1 para 0,30
     em h=6.
     """
-    if not ARQ_LIMIARES.exists():
-        return None
-    return pd.read_parquet(ARQ_LIMIARES)
+    caminho = arquivo("train/limiares_operacao.parquet")
+    return None if caminho is None else pd.read_parquet(caminho)
 
 
 def limiar_de(doenca: str, definicao: str, h: int, modelo: str) -> float:
@@ -506,7 +535,7 @@ def frase_corte(h: int, corte: float) -> str:
 @st.cache_data(show_spinner=False)
 def coordenadas() -> pd.DataFrame:
     """Latitude e longitude de cada município, do lookup das estações INMET."""
-    d = pd.read_excel(ARQ_GEO)
+    d = pd.read_excel(arquivo("lookup/municipios_sp_estacoes_inmet.xlsx"))
     d = d.rename(columns={"Código Município Completo": "cod_ibge",
                           "LATITUDE": "lat", "LONGITUDE": "lon"})
     return d[["cod_ibge", "lat", "lon"]].dropna()

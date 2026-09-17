@@ -1,0 +1,24 @@
+# Só o que o aplicativo precisa para rodar num servidor (Python 3.12).
+# O requirements.txt da raiz tem também o que o pipeline de coleta e treino usa.
+# As versões de pandas, scikit-learn, XGBoost e LightGBM são as mesmas do treino:
+# os modelos gravados com joblib só abrem com versões compatíveis.
+
+streamlit==1.63.0
+plotly==7.0.0
+altair==6.3.0
+
+pandas==3.0.5
+numpy==2.5.3
+pyarrow==25.0.1
+scipy==1.18.1
+openpyxl==3.1.5
+
+scikit-learn==1.9.0
+xgboost==3.4.1
+lightgbm==4.7.0
+joblib==1.6.0
+shap==0.52.0
+matplotlib==3.11.1
+
+# Baixa dados e modelos do Hugging Face Hub quando não estão no disco.
+huggingface_hub==1.32.0
