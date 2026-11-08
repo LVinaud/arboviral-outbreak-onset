@@ -5,7 +5,7 @@ Reads the tables of 04_results (data/train/tables), the analyses of
 
   paper/numbers.tex          one \\newcommand per number quoted in the text
   paper/tables/*.tex         every table of the paper
-  figuras/{timeline,alert_tradeoff,calibration_isotonic}.pdf
+  figuras/{timeline,realtime_by_horizon,alert_tradeoff,calibration_isotonic}.pdf
   paper/abstract_openreview.txt   both versions of the abstract as plain text
 
 Every qualitative claim the text makes about these numbers ("outperforms at every
@@ -77,7 +77,25 @@ def signed(x, d=3):
     return s.replace("-", "$-$").replace("+", "")
 
 
+# Column spacing and font size for the tables that would otherwise run past the
+# margins (checked with the Overfull \hbox warnings of the LaTeX log).
+MAIN_TABLES = {"tab_global", "tab_onset", "tab_realtime", "tab_2025"}
+LAYOUT = {"tab_realtime": ("small", 4), "tab_2025": ("small", 4), "tab_budget_all": ("small", 4),
+          "tab_realtime_full": ("footnotesize", 2.5), "tab_2025_full": ("footnotesize", 4),
+          "tab_onsetmodel": ("footnotesize", 4), "tab_past": ("footnotesize", 4),
+          "tab_tuning": ("footnotesize", 4), "tab_calib": ("footnotesize", 4),
+          "tab_started": ("footnotesize", 4), "tab_action": ("small", 3.5)}
+
+
 def write_table(name, body):
+    if name in LAYOUT:
+        size, sep = LAYOUT[name]
+        assert body.count("\\centering\\small") == 1, name
+        body = body.replace("\\centering\\small",
+                            f"\\centering\\{size}\\setlength{{\\tabcolsep}}{{{sep}pt}}")
+    if name not in MAIN_TABLES:   # the appendix is one column: floats go where cited
+        body = re.sub(r"\\begin\{table\*?\}\[t\]", r"\\begin{table}[htbp]", body)
+        body = body.replace("\\end{table*}", "\\end{table}")
     (TABOUT / f"{name}.tex").write_text(body.strip() + "\n")
     WRITTEN.append(f"paper/tables/{name}.tex")
 
@@ -146,6 +164,10 @@ m("nCols", str(master.shape[1]))
 n_months = master[["ano", "mes"]].drop_duplicates().shape[0]
 m("nMonths", str(n_months))
 assert master["cod_ibge"].nunique() == 645
+census = pd.read_parquet(MASTER / "ibge_wide.parquet").query("ano == 2022")
+assert set(census["pop_fonte"]) == {"censo"} and census["cod_ibge"].nunique() == 645
+m("nPopMin", num(census["pop_residente"].min()))
+m("nPopMax", f"{census['pop_residente'].max() / 1e6:.1f}")
 n_feat = abl[abl.definition == "inc100"]["n_features"].sum()
 m("nFeatures", str(n_feat))
 for y, w in ((2022, "TwentyTwo"), (2023, "TwentyThree")):
@@ -222,8 +244,8 @@ claim(rf.n_onset + rf.n_continuation == pos_test, "onsets plus continuations are
 m("nOutbreakMonthsHOne", num(pos_test))
 m("nRfOnsetRecallT", pct(rf.recall_onset))
 m("nRfContRecallT", pct(rf.recall_continuation))
-gap_t1 = round(100 * rf.recall_continuation, 1) - round(100 * rf.recall_onset, 1)
-m("nRfGapT", f"{gap_t1:.1f}")
+# Gaps are computed from unrounded recalls and rounded once.
+m("nRfGapT", f"{100 * (rf.recall_continuation - rf.recall_onset):.1f}")
 m("nRfPrecAll", pct(rf.precision_global))
 m("nRfPrecCalmT", pct(rf.precision_in_calm))
 m("nRfFalseAlarmT", pct(rf.false_alarm_calm))
@@ -246,7 +268,7 @@ lines = []
 for lbl in ("Random Forest", "XGBoost", "LightGBM", "Logistic regression", "Climatology",
             "Persistence (month t)", "Persistence (real time)"):
     r = onset04.loc[lbl]
-    a, b = round(100 * r.recall_onset, 1), round(100 * r.recall_continuation, 1)
+    a, b = 100 * r.recall_onset, 100 * r.recall_continuation
     lines.append(f"{NICE[lbl]} & {a:.1f} & {b:.1f} & {b - a:.1f} \\\\")
 write_table("tab_onset", r"""
 \begin{table}[t]
@@ -304,7 +326,7 @@ for h in range(1, 7):
     x, c = rt(h, "onset", "xgb"), rt(h, "onset", "climatology_corr")
     claim(x.auroc_ci_lo > c.auroc_ci_hi and x.auprc_ci_lo > c.auprc_ci_hi,
           f"h={h}: XGBoost beats climatology on onsets in AUROC and AUPRC, intervals apart")
-gap_t3 = round(100 * rt(3, "continuation", "rf", "t").recall, 1) - round(100 * rt(3, "onset", "rf", "t").recall, 1)
+gap_t3 = 100 * (rt(3, "continuation", "rf", "t").recall - rt(3, "onset", "rf", "t").recall)
 m("nRfGapTHThree", f"{gap_t3:.1f}")
 claim(all(rt(h, "continuation", "rf", "t").recall < rt(h, "onset", "rf", "t").recall for h in (4, 5, 6)),
       "with reference t, the recall gap reverses from h=4")
@@ -393,8 +415,9 @@ for h in (1, 3):
 claim(y25("canal", 1, "pooled", "rf", P1).auroc < y25("canal", 1, "pooled", "rf", P0).auroc,
       "2025 is weaker under the historical range")
 for h in range(1, 7):
-    claim(y25("canal", h, "onset_ref_tm1", "xgb", P1).auroc > y25("canal", h, "onset_ref_tm1", "climatology_corr", P1).auroc,
-          f"2025, historical range, h={h}: XGBoost still beats climatology on onsets")
+    better = y25("canal", h, "onset_ref_tm1", "xgb", P1).auroc > y25("canal", h, "onset_ref_tm1", "climatology_corr", P1).auroc
+    claim(better if h <= 2 else not better,
+          f"2025, historical range, h={h}: XGBoost {'beats' if h <= 2 else 'does not beat'} climatology on onsets")
     claim(y25("inc100", h, "onset_ref_tm1", "xgb", P1).auroc > y25("inc100", h, "onset_ref_tm1", "climatology_corr", P1).auroc,
           f"2025, inc100, h={h}: XGBoost beats climatology on onsets")
 rows25 = [("All months, XGBoost", "inc100", 1, "pooled", "xgb"),
@@ -642,7 +665,7 @@ m("nFullAuprc", f3(t3.loc["Random Forest", "auprc"]))
 claim(abs(base.auprc - t3.loc["Random Forest", "auprc"]) < 0.005, "the base of 38 features matches the full model")
 CORE = {"target history", "climate", "seasonality"}
 w9 = a9.pivot(index="group", columns="subset", values="mean")
-m("nShapOtherOnset", pct(w9.loc[~w9.index.isin(CORE), "onset (ref t-1)"].sum()))
+m("nShapOtherOnset", pct(w9.loc[~w9.index.isin(CORE), "onset (ref t)"].sum()))
 m("nShapOtherPooled", pct(w9.loc[~w9.index.isin(CORE), "aggregate (sample 1500)"].sum()))
 
 # --------------------------------------------------------------------------- rarity example, horizon
@@ -750,13 +773,13 @@ write_table("tab_action", r"""
 \begin{table}[t]
 \centering\small
 \caption{Acting on calm municipalities whose calibrated XGBoost probability exceeds
-$C/L$, dengue, inc100, real-time reference. Per cent of calm municipalities
-flagged, of flagged municipalities that enter an outbreak (precision), and of
-onsets caught (recall).}
+$C/L$, dengue, inc100, real-time reference: alerts per month, and per cent of calm
+municipalities flagged, of flagged municipalities that enter an outbreak
+(precision) and of onsets caught (recall).}
 \label{tab:action}
 \begin{tabular}{cccccc}
 \toprule
-$h$ & $C/L$ & Alerts/month & Flagged & Precision & Recall \\
+$h$ & $C/L$ & Per month & Flagged & Precision & Recall \\
 \midrule
 """ + "\n".join(lines) + r"""
 \bottomrule
@@ -794,15 +817,15 @@ for h in range(1, 7):
     for s, sn in (("onset", "Onset"), ("continuation", "Contin.")):
         r, x, c = rt(h, s, "rf"), rt(h, s, "xgb"), rt(h, s, "climatology_corr")
         hcell = str(h) if s == "onset" else ""
-        lines.append(f"{hcell} & {sn} & {pct(r.base_rate)} & {cipct(r, 'precision')} & "
-                     f"{cipct(x, 'precision')} & {ci(r, 'auprc')} & {ci(x, 'auprc')} & {ci(c, 'auprc')} & "
+        lines.append(f"{hcell} & {sn} & {pct(r.base_rate)} & {pct(r.precision)} & "
+                     f"{pct(x.precision)} & {ci(r, 'auprc')} & {ci(x, 'auprc')} & {ci(c, 'auprc')} & "
                      f"{f3(x.auroc_fold_min)}--{f3(x.auroc_fold_max)} \\\\")
 write_table("tab_realtime_full", r"""
 \begin{table*}[t]
 \centering\small
 \caption{Precision at 0.5 and AUPRC by horizon with the real-time reference,
-dengue, inc100, with 95\% bootstrap intervals over municipalities. The last column
-is the range of XGBoost's AUROC across the three test years.}
+dengue, inc100. AUPRC with 95\% bootstrap intervals over municipalities; the last
+column is the range of XGBoost's AUROC across the three test years.}
 \label{tab:realtimefull}
 \begin{tabular}{clccccccc}
 \toprule
@@ -819,8 +842,8 @@ lines = []
 for h in range(1, 7):
     o, c = rt(h, "onset", "rf", "t"), rt(h, "continuation", "rf", "t")
     xo, xc, cl = rt(h, "onset", "xgb", "t"), rt(h, "continuation", "xgb", "t"), rt(h, "onset", "climatology_corr", "t")
-    a, b = round(100 * o.recall, 1), round(100 * c.recall, 1)
-    lines.append(f"{h} & {pct(o.base_rate)} & {pct(c.base_rate)} & {a:.1f} & {b:.1f} & {b - a:.1f} & "
+    a, b = 100 * o.recall, 100 * c.recall
+    lines.append(f"{h} & {pct(o.base_rate)} & {pct(c.base_rate)} & {a:.1f} & {b:.1f} & {signed(b - a, 1)} & "
                  f"{f3(xo.auroc)} & {f3(xc.auroc)} & {f3(cl.auroc)} \\\\")
 write_table("tab_reft", r"""
 \begin{table*}[t]
@@ -966,6 +989,7 @@ plt.rcParams.update({"font.size": 8, "axes.edgecolor": GRID, "axes.labelcolor": 
 
 
 def style(ax):
+    ax.tick_params(labelsize=6.8)
     ax.grid(True, color=GRID, linewidth=0.6)
     ax.set_axisbelow(True)
     for s in ("top", "right"):
@@ -980,35 +1004,40 @@ def save(fig, name):
 
 
 # Timeline of one forecast
-fig, ax = plt.subplots(figsize=(3.4, 1.75))
+fig, ax = plt.subplots(figsize=(3.4, 1.55))
 months = ["Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-xs = np.arange(len(months))
-ax.set_xlim(-0.6, len(months) - 0.4)
-ax.set_ylim(-1.55, 1.45)
+ax.set_xlim(-0.55, 8.55)
+ax.set_ylim(-1.05, 1.55)
 ax.axis("off")
-for x, mo in zip(xs, months):
-    ax.add_patch(plt.Rectangle((x - 0.46, -0.22), 0.92, 0.44, color="#f0f0f0", lw=0))
-    ax.text(x, 0, mo, ha="center", va="center", color=INK, fontsize=7.5)
-ax.add_patch(plt.Rectangle((-0.46 + 0.0, -0.22), 1.92, 0.44, fill=False, ec=COL["rf"], lw=1.2))
-ax.text(0.5, 0.36, "cases consolidated", ha="center", va="bottom", fontsize=6.5, color=COL["rf"])
-ax.add_patch(plt.Rectangle((2 - 0.46, -0.22), 0.92, 0.44, fill=False, ec=COL["lgbm"], lw=1.2, ls=(0, (2, 1))))
-ax.text(2, 0.36, "weather only\n(row $t$)", ha="center", va="bottom", fontsize=6.5, color=COL["lgbm"])
-ax.annotate("", xy=(3.5, 0.95), xytext=(3.5, 0.25), arrowprops=dict(arrowstyle="-|>", color=COL["xgb"], lw=1.0))
-ax.text(3.5, 1.0, "issued 1 Aug", ha="center", va="bottom", fontsize=6.5, color=COL["xgb"])
+for x, mo in enumerate(months):
+    ax.add_patch(plt.Rectangle((x - 0.45, -0.22), 0.9, 0.44, color="#eeeeee", lw=0))
+    ax.text(x, 0, mo, ha="center", va="center", color=INK, fontsize=7)
+
+
+def bracket(x0, x1, y, text, col):
+    ax.plot([x0, x0, x1, x1], [y - 0.08, y, y, y - 0.08], color=col, lw=1.0)
+    ax.text((x0 + x1) / 2, y + 0.06, text, ha="center", va="bottom", fontsize=6.5, color=col)
+
+
+bracket(-0.45, 1.45, 0.36, "cases consolidated", COL["rf"])
+bracket(-0.45, 2.45, 0.86, "weather known", COL["lgbm"])
+ax.annotate("", xy=(3.5, 0.26), xytext=(3.5, 1.22),
+            arrowprops=dict(arrowstyle="-|>", color=COL["xgb"], lw=1.1))
+ax.text(3.58, 1.22, "issued 1 Aug", ha="left", va="center", fontsize=6.5, color=COL["xgb"])
 for h in range(1, 7):
     x = 2 + h
-    ax.text(x, -0.42, f"$h$={h}", ha="center", va="top", fontsize=6.5, color=INK)
-    lead = {1: "past", 2: "current"}.get(h, f"+{h - 2} mo")
-    ax.text(x, -0.78, lead, ha="center", va="top", fontsize=6, color=MUTED)
-ax.text(1.0, -1.25, "reference: May (real time) or June (original)", ha="center", va="top",
-        fontsize=6.5, color=MUTED)
-ax.annotate("", xy=(1, -0.3), xytext=(1, -1.18), arrowprops=dict(arrowstyle="-", color=GRID, lw=0.8))
-ax.annotate("", xy=(2, -0.3), xytext=(2, -1.18), arrowprops=dict(arrowstyle="-", color=GRID, lw=0.8))
+    ax.text(x, -0.36, f"$h$={h}", ha="center", va="top", fontsize=6.3, color=INK)
+    ax.text(x, -0.68, {1: "past", 2: "now"}.get(h, f"+{h - 2}"), ha="center", va="top",
+            fontsize=6.3, color=MUTED)
+ax.text(1, -0.36, "$t-1$", ha="center", va="top", fontsize=6.3, color=INK)
+ax.text(1, -0.68, "real", ha="center", va="top", fontsize=6.3, color=MUTED)
+ax.text(2, -0.36, "$t$", ha="center", va="top", fontsize=6.3, color=INK)
+ax.text(2, -0.68, "orig.", ha="center", va="top", fontsize=6.3, color=MUTED)
 save(fig, "timeline")
 
 # Alerts raised against onsets caught
 pcts = a6[a6.budget_type == "pct"].copy()
-fig, axes = plt.subplots(1, 2, figsize=(3.4, 1.9), sharey=True)
+fig, axes = plt.subplots(1, 2, figsize=(3.4, 2.05), sharey=True)
 for ax, h in zip(axes, (1, 3)):
     q = pcts[pcts.h == h]
     for mod in ("xgb", "rf", "climatology_corr", "persistence_tm1"):
@@ -1025,12 +1054,50 @@ for ax, h in zip(axes, (1, 3)):
     ax.set_xlim(0, 50)
     ax.set_ylim(0, 100)
     ax.set_title(f"$h$={h}" + (" (nowcast)" if h == 1 else " (1 month ahead)"), fontsize=7.5, color=INK)
-    ax.set_xlabel("Calm municipalities flagged (%)", fontsize=7)
     style(ax)
 axes[0].set_ylabel("Onsets caught (%)", fontsize=7)
-axes[1].legend(frameon=False, fontsize=6.2, loc="lower right", labelcolor=INK, handlelength=2.2)
-fig.tight_layout(w_pad=0.6)
+fig.supxlabel("Calm municipalities flagged each month (%)", fontsize=7, color=MUTED, y=0.095)
+handles, labels = axes[0].get_legend_handles_labels()
+fig.legend(handles, labels, frameon=False, fontsize=6.3, labelcolor=INK, loc="lower center",
+           ncol=4, handlelength=2.0, columnspacing=1.0, bbox_to_anchor=(0.5, -0.02))
+fig.tight_layout(rect=(0, 0.06, 1, 1), w_pad=0.6)
 save(fig, "alert_tradeoff")
+
+# Onset and continuation by horizon, real-time reference
+ONS, CON = "#0072B2", "#8c8c8c"
+hs = np.arange(1, 7)
+ticks = [f"{h}\n({h - 2:+d})" if h > 2 else f"{h}\n({h - 2})" for h in hs]
+fig, axes = plt.subplots(1, 3, figsize=(6.9, 2.15))
+ax = axes[0]
+for s, col, nm in (("onset", ONS, "Onset"), ("continuation", CON, "Continuation")):
+    ax.plot(hs, [100 * rt(h, s, "rf").base_rate for h in hs], color=col, marker="o", ms=3.5, lw=1.6, label=nm)
+ax.set_ylabel("Base rate (%)", fontsize=7.5)
+ax.set_ylim(0, 65)
+ax.legend(frameon=False, fontsize=6.8, labelcolor=INK, loc="upper right")
+ax = axes[1]
+for s, col in (("onset", ONS), ("continuation", CON)):
+    ax.plot(hs, [100 * rt(h, s, "rf").recall for h in hs], color=col, marker="o", ms=3.5, lw=1.6)
+    ax.fill_between(hs, [100 * rt(h, s, "rf").recall_ci_lo for h in hs],
+                    [100 * rt(h, s, "rf").recall_ci_hi for h in hs], color=col, alpha=0.16, lw=0)
+ax.set_ylabel("Recall at 0.5, random forest (%)", fontsize=7.5)
+ax.set_ylim(0, 100)
+ax = axes[2]
+for s, col in (("onset", ONS), ("continuation", CON)):
+    ax.plot(hs, [rt(h, s, "xgb").auroc for h in hs], color=col, marker="o", ms=3.5, lw=1.6)
+    ax.fill_between(hs, [rt(h, s, "xgb").auroc_ci_lo for h in hs], [rt(h, s, "xgb").auroc_ci_hi for h in hs],
+                    color=col, alpha=0.16, lw=0)
+ax.plot(hs, [rt(h, "onset", "climatology_corr").auroc for h in hs], color=ONS, ls=(0, (1, 1.2)), lw=1.3,
+        label="Climatology, onset")
+ax.set_ylabel("AUROC within the group", fontsize=7.5)
+ax.set_ylim(0.65, 0.95)
+ax.legend(frameon=False, fontsize=6.8, labelcolor=INK, loc="lower left")
+for ax in axes:
+    ax.set_xticks(hs)
+    ax.set_xticklabels(ticks, fontsize=6.5)
+    ax.set_xlabel("Horizon $h$ (lead time, months)", fontsize=7)
+    style(ax)
+fig.tight_layout(w_pad=1.2)
+save(fig, "realtime_by_horizon")
 
 # Reliability before and after isotonic calibration
 fig, axes = plt.subplots(1, 2, figsize=(6.4, 2.7), sharey=True)
