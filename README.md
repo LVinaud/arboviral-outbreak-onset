@@ -109,9 +109,12 @@ same bytes.
 | Table 3, onset and continuation by issue date, h = 1 to 6 | `paper/tables/tab_realtime.tex` | `06` (from `05`, C1) |
 | Table 4, the 2025 test year | `paper/tables/tab_2025.tex` | `06` (from `05`, B1) |
 | Figure 1, timeline of a forecast | `figuras/timeline.pdf` | `06` |
-| Figure 2, alerts raised against onsets caught | `figuras/alert_tradeoff.pdf` | `06` (from `05`, A6) |
+| Figure 2, onset and continuation recall, original reference | `figuras/onset_vs_continuation.pdf` | `04` |
+| Figure 3, onset and continuation by horizon, real time | `figuras/realtime_by_horizon.pdf` | `06` (from `05`, C1) |
+| Figure 4, alerts raised against onsets caught | `figuras/alert_tradeoff.pdf` | `06` (from `05`, A6) |
+| Figure 5, what each family of variables is worth | `figuras/feature_groups.pdf` | `04` |
 | Appendix tables | `paper/tables/tab_*.tex` | `06` (from `04` and `05`) |
-| Appendix figures: feature families, kappa, original split, alert budget over all municipalities, season and size, stability, horizon decay, horizon by disease, ROC and PR, threshold curves | `figuras/*.pdf` | `04` |
+| Appendix figures: kappa, alert budget over all municipalities, season and size, stability, horizon decay, horizon by disease, ROC and PR, threshold curves | `figuras/*.pdf` | `04` |
 | Appendix figure: calibration before and after | `figuras/calibration_isotonic.pdf` | `06` (from `05`, C2) |
 | Appendix figures: interface screens | `paper/figures/*.png` | screenshots of the application |
 
