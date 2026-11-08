@@ -3,8 +3,17 @@
 __pycache__/
 .ipynb_checkpoints/
 
-# --- Paper draft (LaTeX for ML4H), kept out of the code repo ---
+# --- Working folder with the reviews and third-party PDFs: never versioned.
+# The paper itself lives in paper/. ---
 artigo/
+
+# --- LaTeX build output of paper/ (the PDF is rebuilt from the source) ---
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.out
+paper/*.pdf
+paper/*.synctex.gz
 
 # --- Raw collection: ~4.8 GB, fully reproducible by 01_data_collection ---
 data/raw
