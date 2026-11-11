@@ -931,7 +931,7 @@ $h$ & Model & $k=10$ & $k=25$ & $k=50$ & 5\% & 10\% & Recall at 5\% \\
 \end{table*}
 """)
 lines = []
-for lbl in ("Random Forest", "XGBoost", "Persistence (month t)", "Persistence (real time)", "Climatology"):
+for lbl in ("Random Forest", "Persistence (month t)", "Persistence (real time)", "Climatology"):
     q = budget_all[budget_all.model == lbl]
     for i, (_, r) in enumerate(q.iterrows()):
         lines.append(f"{NICE[lbl] if i == 0 else ''} & {int(r.k)} & {r['recall_%']:.1f}\\% & {r['precision_%']:.1f}\\% \\\\")
