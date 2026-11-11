@@ -6,7 +6,7 @@ Reads the tables of 04_results (data/train/tables), the analyses of
   paper/numbers.tex          one \\newcommand per number quoted in the text
   paper/tables/*.tex         every table of the paper
   figuras/{timeline,realtime_by_horizon,alert_tradeoff,calibration_isotonic}.pdf
-  paper/abstract_openreview.txt   both versions of the abstract as plain text
+  paper/abstract_openreview.txt   the abstract as plain text
 
 Every qualitative claim the text makes about these numbers ("outperforms at every
 horizon", "both are below the pooled score", ...) is asserted here, so a rerun that
@@ -202,12 +202,17 @@ m("nTreeAurocHi", f3(trees.auroc.max()))
 m("nTreeAuprcLo", f3(trees.auprc.min()))
 m("nTreeAuprcHi", f3(trees.auprc.max()))
 m("nXgbAuroc", f3(t3.loc["XGBoost", "auroc"]))
+claim(trees.lift.round(1).nunique() == 1, "the three tree models have the same lift")
+m("nTreeLift", f"{trees.lift.iloc[0]:.1f}")
+m("nRateIncFrac", f"{rate:.3f}")
 claim(t3.auroc.idxmax() == "XGBoost", "XGBoost has the best pooled AUROC")
 best_auprc = t3.loc[["Logistic regression", "Random Forest", "XGBoost", "LightGBM"], "auprc"].max()
 for key, lbl in (("Pers", "Persistence (month t)"), ("PersRt", "Persistence (real time)")):
     m(f"n{key}Auroc", f3(t3.loc[lbl, "auroc"]))
     m(f"n{key}Auprc", f3(t3.loc[lbl, "auprc"]))
     m(f"n{key}Share", f"{100 * (t3.loc[lbl, 'auprc'] - rate) / (best_auprc - rate):.0f}")
+pers_share = (t3.loc["Persistence (month t)", "auprc"] - rate) / (best_auprc - rate)
+claim(0.6 <= pers_share <= 0.7, "two thirds of the apparent skill comes from persistence (month t)")
 lines = []
 for lbl in ROWS1:
     r = t3.loc[lbl]
@@ -221,9 +226,10 @@ for lbl in ROWS1:
 write_table("tab_global", r"""
 \begin{table}[t]
 \centering\small
-\caption{One month ahead, dengue, inc100, mean over the test years 2022 to 2024.
-The outbreak rate is \nRateInc\%; lift is AUPRC divided by it. Persistence
-(month $t$) uses a month not yet consolidated on the issue date.}
+\caption{One month ahead, dengue, incidence definition. Mean over test years
+2022--2024. The outbreak rate is \nRateInc\%, so lift is AUPRC divided by
+\nRateIncFrac. Persistence (month $t$) uses a month not yet consolidated on the
+issue date.}
 \label{tab:global}
 \begin{tabular}{lccc}
 \toprule
@@ -249,6 +255,17 @@ m("nRfGapT", f"{100 * (rf.recall_continuation - rf.recall_onset):.1f}")
 m("nRfPrecAll", pct(rf.precision_global))
 m("nRfPrecCalmT", pct(rf.precision_in_calm))
 m("nRfFalseAlarmT", pct(rf.false_alarm_calm))
+lr = onset04.loc["Logistic regression"]
+m("nLrOnsetRecallT", pct(lr.recall_onset))
+m("nLrFalseAlarmT", pct(lr.false_alarm_calm))
+claim(lr.recall_onset > rf.recall_onset and lr.false_alarm_calm > rf.false_alarm_calm,
+      "logistic regression catches more onsets by raising more false alarms")
+clim = onset04.loc["Climatology"]
+m("nClimOnsetRecallT", pct(clim.recall_onset))
+claim(0.40 <= rf.recall_onset < 0.50, "the random forest catches just under half of onsets")
+claim(rf.recall_onset > 3 * clim.recall_onset, "onset recall is well above the seasonal baseline")
+claim(0.70 < rf.n_continuation / (rf.n_onset + rf.n_continuation) < 0.80,
+      "a model that answers only the easy question looks about three quarters right")
 pers = onset04.loc["Persistence (month t)"]
 claim(pers.recall_onset == 0 and pers.recall_continuation == 1,
       "persistence (month t) catches every continuation and no onset")
@@ -265,17 +282,20 @@ for mod in ("rf", "xgb"):
     claim(abs(rt(1, "onset", mod, "t").auroc - rt(1, "continuation", mod, "t").auroc) < 0.03,
           f"{mod}: onsets and continuations ranked about equally well at h=1 (reference t)")
 lines = []
-for lbl in ("Random Forest", "XGBoost", "LightGBM", "Logistic regression", "Climatology",
-            "Persistence (month t)", "Persistence (real time)"):
+ROWS2 = ("Random Forest", "XGBoost", "LightGBM", "Logistic regression", "Climatology",
+         "Persistence (month t)", "Persistence (real time)")
+best_onset = onset04.loc[list(ROWS2), "recall_onset"].idxmax()
+for lbl in ROWS2:
     r = onset04.loc[lbl]
     a, b = 100 * r.recall_onset, 100 * r.recall_continuation
-    lines.append(f"{NICE[lbl]} & {a:.1f} & {b:.1f} & {b - a:.1f} \\\\")
+    sa = f"\\textbf{{{a:.1f}}}" if lbl == best_onset else f"{a:.1f}"
+    lines.append(f"{NICE[lbl]} & {sa} & {b:.1f} & {b - a:.1f} \\\\")
 write_table("tab_onset", r"""
 \begin{table}[t]
 \centering\small
-\caption{The models of Table~\ref{tab:global}, split by the state in month $t$
-(original reference). Recall in per cent at a 0.5 threshold; \nOnsetsHOne{} onsets
-and \nContsHOne{} continuations.}
+\caption{The same models as Table~\ref{tab:global}, split by whether the
+municipality was calm in month $t$ (original reference). Recall in per cent, at a
+0.5 threshold. \nOnsetsHOne{} onsets and \nContsHOne{} continuations.}
 \label{tab:onset}
 \begin{tabular}{lccc}
 \toprule
@@ -605,6 +625,13 @@ m("nSeasonMaxAuroc", f3(season.auroc.max()))
 m("nSeasonMaxMonth", MONTHS[season.auroc.idxmax()])
 m("nSeasonMinRate", pct(season.base_rate.min()))
 m("nSeasonMaxRate", pct(season.base_rate.max()))
+m("nRateMinMonth", MONTHS[season.base_rate.idxmin()])
+m("nRateMaxMonth", MONTHS[season.base_rate.idxmax()])
+stab = pd.read_csv(TAB / "table_stability_by_year.csv", index_col=0).rename(columns={"Unnamed: 1": "model"})
+tree_spread = stab[stab.model.isin(["Random Forest", "XGBoost", "LightGBM"])]["spread"].max()
+lr_spread = stab[stab.model == "Logistic regression"]["spread"].max()
+m("nStabTreeMax", f2(tree_spread))
+m("nStabLrMax", f2(lr_spread))
 rfs = size[size.model == "Random Forest"].set_index("stratum")
 claim(rfs.municipalities.sum() == 645, "size bands partition the 645 municipalities")
 m("nSizeSmallAuroc", f3(rfs.loc["< 10k", "auroc"]))
@@ -650,6 +677,14 @@ Population & Munic. & Rate & AUROC & AUPRC \\
 """)
 
 # --------------------------------------------------------------------------- feature families
+ngrp = abl[abl.definition == "inc100"].set_index("group")["n_features"]
+for g, key in (("target history", "Target"), ("other arboviruses", "Other"), ("climate", "Weather"),
+               ("environment", "Env"), ("socioeconomic", "Socio"), ("health services", "Health"),
+               ("sanitation", "San"), ("seasonality", "Season"), ("mobility", "Mob"), ("geography", "Geo")):
+    m(f"nGrp{key}", str(int(ngrp[g])))
+claim(ngrp.sum() == n_feat and len(ngrp) == 10, "the ten groups partition the predictors")
+claim(ngrp["climate"] == 5 * 4, "weather is five variables at four lags")
+claim(ngrp["seasonality"] == 2, "seasonality is a sine and a cosine")
 mean_abl = abl.groupby("group")["delta_auprc"].mean()
 m("nAblTarget", f3(mean_abl["target history"]))
 others = mean_abl.drop("target history")
@@ -703,8 +738,9 @@ claim(len(lines) == 8, "the grid has the eight evaluable pairs")
 write_table("tab_grid", r"""
 \begin{table*}[t]
 \centering\small
-\caption{The eight evaluable disease and definition pairs, random forest. Rate is
-the outbreak rate in the test years; lift is AUPRC divided by it.}
+\caption{All eight evaluable disease--definition pairs, random forest. Rate is the
+outbreak rate over the folds that could be scored; lift is AUPRC divided by that
+rate.}
 \label{tab:grid}
 \begin{tabular}{llcccccc}
 \toprule
@@ -900,12 +936,19 @@ for lbl in ("Random Forest", "XGBoost", "Persistence (month t)", "Persistence (r
     for i, (_, r) in enumerate(q.iterrows()):
         lines.append(f"{NICE[lbl] if i == 0 else ''} & {int(r.k)} & {r['recall_%']:.1f}\\% & {r['precision_%']:.1f}\\% \\\\")
     lines.append(r"\addlinespace")
+rfa = budget_all[budget_all.model == "Random Forest"].set_index("k")
+for k, w in ((25, "TwentyFive"), (100, "Hundred")):
+    m(f"nBudAllRfCov{w}", f"{rfa.loc[k, 'recall_%']:.1f}")
+    m(f"nBudAllRfPrec{w}", f"{rfa.loc[k, 'precision_%']:.1f}")
+claim(60 <= rfa.loc[25, "precision_%"] <= 70, "two thirds of the 25 supported municipalities are in an outbreak")
+per_month = labels[labels["ano"].between(2022, 2024)].groupby(["ano", "mes"])["dengue_inc100"].sum().mean()
+m("nOutbreakMunisMonth", str(int(round(per_month))))
+claim(abs(per_month - 645 * rate) < 5, "outbreak municipalities per test month match the outbreak rate")
 write_table("tab_budget_all", r"""
 \begin{table}[t]
 \centering\small
 \caption{Supporting the $k$ highest-ranked of all 645 municipalities each month,
-dengue, inc100, one month ahead: share of the month's outbreaks covered, and share
-of supported municipalities in an outbreak.}
+dengue, inc100, one month ahead.}
 \label{tab:budgetall}
 \begin{tabular}{lccc}
 \toprule
@@ -948,34 +991,6 @@ Definition & $h$ & 22--24 & 25 & 22--24 & 25 & 22--24 & 25 & 22--24 & 25 & 22--2
 \bottomrule
 \end{tabular}
 \end{table*}
-""")
-
-# --------------------------------------------------------------------------- Zika and yellow fever
-z = master[["ano", "zika_casos"]].groupby("ano")["zika_casos"].sum()
-m("nZikaCases", num(z.sum()))
-m("nZikaShareSixteen", pct(z.loc[2016] / z.sum()))
-zl = labels.groupby("ano")[["zika_inc100", "zika_inc300", "zika_canal", "zika_zscore"]].sum()
-claim(zl.loc[zl.index >= 2020].sum().sum() == 0, "no Zika outbreak month from 2020 on under any definition")
-lines = [f"{y} & {num(z.loc[y])} & " + " & ".join(str(int(zl.loc[y, c])) for c in zl.columns) + " \\\\"
-         for y in z.index]
-lines.append(r"\midrule")
-lines.append(f"Total & {num(z.sum())} & " + " & ".join(str(int(zl[c].sum())) for c in zl.columns) + " \\\\")
-write_table("tab_rare", r"""
-\begin{table}[t]
-\centering\small
-\caption{Confirmed Zika cases in the 645 municipalities and outbreak months under
-each definition, by year (2026 up to June).}
-\label{tab:rare}
-\begin{tabular}{lccccc}
-\toprule
- & & \multicolumn{4}{c}{Outbreak months} \\
-\cmidrule(lr){3-6}
-Year & Cases & inc100 & inc300 & Hist. & Std. \\
-\midrule
-""" + "\n".join(lines) + r"""
-\bottomrule
-\end{tabular}
-\end{table}
 """)
 
 # --------------------------------------------------------------------------- figures
@@ -1138,10 +1153,7 @@ def plain(tex):
 
 src = (PAPER / "main.tex").read_text()
 ab = src.split("\\begin{abstract}")[1].split("\\end{abstract}")[0]
-real, ref = ab.split("\\ifabstractrealtime")[1].split("\\else")
-ref = ref.split("\\fi")[0]
-txt = ("Version A (real time throughout)\n\n" + plain(real) + "\n\n"
-       "Version B (each number with its reference)\n\n" + plain(ref) + "\n")
+txt = "\n\n".join(plain(par) for par in re.split(r"\n\s*\n", ab) if par.strip()) + "\n"
 assert "\\" not in txt, "a LaTeX command survived in the plain-text abstract"
 (PAPER / "abstract_openreview.txt").write_text(txt)
 WRITTEN.append("paper/abstract_openreview.txt")
