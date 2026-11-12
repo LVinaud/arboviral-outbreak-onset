@@ -23,6 +23,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
+from matplotlib.transforms import Bbox  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
@@ -1013,18 +1014,23 @@ def style(ax):
         ax.spines[s].set_visible(False)
 
 
-def save(fig, name):
-    fig.savefig(FIG / f"{name}.pdf", bbox_inches="tight")
-    fig.savefig(FIG / f"{name}.png", bbox_inches="tight", dpi=200)
+def save(fig, name, bbox="tight"):
+    fig.savefig(FIG / f"{name}.pdf", bbox_inches=bbox)
+    fig.savefig(FIG / f"{name}.png", bbox_inches=bbox, dpi=200)
     plt.close(fig)
     WRITTEN.append(f"figuras/{name}.pdf")
 
 
-# Timeline of one forecast
-fig, ax = plt.subplots(figsize=(3.4, 1.55))
+# Timeline of one forecast. Drawn at a fixed scale (inches per data unit) on an axes
+# that fills the figure, then cropped to the drawn elements, so no empty background is
+# kept above the brackets or below the labels.
+XU, YU = 0.2896, 0.459
+X0, X1, Y0, Y1 = -0.55, 8.55, -1.5, 1.5
+fig = plt.figure(figsize=((X1 - X0) * XU, (Y1 - Y0) * YU))
+ax = fig.add_axes([0, 0, 1, 1])
 months = ["Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-ax.set_xlim(-0.55, 8.55)
-ax.set_ylim(-1.05, 1.55)
+ax.set_xlim(X0, X1)
+ax.set_ylim(Y0, Y1)
 ax.axis("off")
 for x, mo in enumerate(months):
     ax.add_patch(plt.Rectangle((x - 0.45, -0.22), 0.9, 0.44, color="#eeeeee", lw=0))
@@ -1038,9 +1044,11 @@ def bracket(x0, x1, y, text, col):
 
 bracket(-0.45, 1.45, 0.36, "cases consolidated", COL["rf"])
 bracket(-0.45, 2.45, 0.86, "weather known", COL["lgbm"])
-ax.annotate("", xy=(3.5, 0.26), xytext=(3.5, 1.22),
-            arrowprops=dict(arrowstyle="-|>", color=COL["xgb"], lw=1.1))
-ax.text(3.58, 1.22, "issued 1 Aug", ha="left", va="center", fontsize=6.5, color=COL["xgb"])
+AUG = 3.55  # left edge of the August box: the issue date
+ax.annotate("", xy=(AUG, 0.22), xytext=(AUG, 1.0),
+            arrowprops=dict(arrowstyle="-|>", color=COL["xgb"], lw=1.1, shrinkA=0, shrinkB=0))
+ax.plot([AUG, AUG], [0.22, -0.22], color=COL["xgb"], lw=1.1, solid_capstyle="butt")
+ax.text(AUG + 0.08, 1.0, "issued 1 Aug", ha="left", va="center", fontsize=6.5, color=COL["xgb"])
 for h in range(1, 7):
     x = 2 + h
     ax.text(x, -0.36, f"$h$={h}", ha="center", va="top", fontsize=6.3, color=INK)
@@ -1050,7 +1058,11 @@ ax.text(1, -0.36, "$t-1$", ha="center", va="top", fontsize=6.3, color=INK)
 ax.text(1, -0.68, "real", ha="center", va="top", fontsize=6.3, color=MUTED)
 ax.text(2, -0.36, "$t$", ha="center", va="top", fontsize=6.3, color=INK)
 ax.text(2, -0.68, "orig.", ha="center", va="top", fontsize=6.3, color=MUTED)
-save(fig, "timeline")
+fig.canvas.draw()
+rend = fig.canvas.get_renderer()
+drawn = Bbox.union([a.get_window_extent(rend) for a in ax.texts + ax.lines + ax.patches])
+drawn = drawn.transformed(fig.dpi_scale_trans.inverted()).padded(0.03)
+save(fig, "timeline", bbox=drawn)
 
 # Alerts raised against onsets caught
 pcts = a6[a6.budget_type == "pct"].copy()
