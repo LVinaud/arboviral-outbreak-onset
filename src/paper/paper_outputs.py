@@ -207,8 +207,8 @@ claim(trees.lift.round(1).nunique() == 1, "the three tree models have the same l
 m("nTreeLift", f"{trees.lift.iloc[0]:.1f}")
 m("nRateIncFrac", f"{rate:.3f}")
 claim(t3.auroc.idxmax() == "XGBoost", "XGBoost has the best pooled AUROC")
-claim(t3.loc[["Logistic regression", "Random Forest", "XGBoost", "LightGBM"], "auprc"].idxmax() == "LightGBM",
-      "LightGBM has the best pooled AUPRC (the best model of 6.1)")
+claim(t3.loc[["Logistic regression", "Random Forest", "XGBoost", "LightGBM"], "auprc"].idxmax() == "XGBoost",
+      "XGBoost also has the best pooled AUPRC (the best model of 6.1)")
 best_auprc = t3.loc[["Logistic regression", "Random Forest", "XGBoost", "LightGBM"], "auprc"].max()
 for key, lbl in (("Pers", "Persistence (month t)"), ("PersRt", "Persistence (real time)")):
     m(f"n{key}Auroc", f3(t3.loc[lbl, "auroc"]))
@@ -696,7 +696,9 @@ mean_abl = abl.groupby("group")["delta_auprc"].mean()
 m("nAblTarget", f3(mean_abl["target history"]))
 others = mean_abl.drop("target history")
 m("nAblOtherMax", f3(others.max()))
-claim(mean_abl["sanitation"] < 0, "sanitation has a negative ablation value")
+claim(mean_abl["sanitation"] < 0 and (others < 0).sum() == 5,
+      "five families, sanitation among them, have a negative ablation value")
+claim(others.min() > -0.005, "the negative ablation values are slight")
 m("nAblWeather", f3(mean_abl["climate"]))
 shap_mean = shap.groupby(["definition", "group"])["shap_share"].mean().groupby("group").mean()
 m("nShapWeather", pct(shap_mean["climate"]))
