@@ -25,7 +25,7 @@ Each runs top to bottom and rebuilds everything downstream of it.
 | Notebook | What it does | Reads | Writes | Time |
 |---|---|---|---|---|
 | `01_data_collection` | downloads the sixteen public sources | network | `data/raw/<date>/` | ~1 h, ~5 GB |
-| `02_master` | builds the municipality-month table and the sixteen outbreak labels | `data/raw/`, `data/lookup/` | `data/master/` | ~1 h |
+| `02_master` | builds the municipality-month table and the sixteen outbreak labels | `data/raw/`, `data/lookup/` | `data/master/` | ~1.5 h |
 | `03_train` | builds 125 features, splits in time, trains four models and three baselines for 4 diseases x 4 definitions x 6 horizons | `data/master/` | `data/train/` | ~1 to 2 h |
 | `04_results` | the tables and figures of the original evaluation | `data/train/`, `data/master/` | `data/train/tables/`, `figuras/` | ~25 min |
 | `05_revision_analyses` | the analyses added in the review: evaluation by issue date, onset and continuation at every horizon, alert budgets, 2025 as a fourth test year, a model for onsets only, thresholds from past years, hyperparameter search, calibration | `data/train/`, `data/master/` | `data/train/revision/` | ~1.5 h |
