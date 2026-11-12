@@ -337,6 +337,8 @@ claim(rt(3, "onset", "rf").precision < rt(3, "continuation", "rf").precision,
       "h=3 real time: precision on onsets is lower")
 diffs = [rt(h, "continuation", "xgb").auroc - rt(h, "onset", "xgb").auroc for h in range(2, 7)]
 claim(min(diffs) > 0, "from h=2 on, XGBoost ranks continuations better than onsets")
+claim(all(rt(3, "onset", mo).auroc_ci_hi < rt(3, "continuation", mo).auroc_ci_lo for mo in ("rf", "xgb")),
+      "h=3 real time: random forest and XGBoost rank continuations better, intervals apart (abstract)")
 m("nRtAurocDiffLo", f3(min(diffs)))
 m("nRtAurocDiffHi", f3(max(diffs)))
 claim(rt(1, "onset", "rf").base_rate < rt(6, "onset", "rf").base_rate
