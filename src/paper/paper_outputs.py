@@ -207,6 +207,8 @@ claim(trees.lift.round(1).nunique() == 1, "the three tree models have the same l
 m("nTreeLift", f"{trees.lift.iloc[0]:.1f}")
 m("nRateIncFrac", f"{rate:.3f}")
 claim(t3.auroc.idxmax() == "XGBoost", "XGBoost has the best pooled AUROC")
+claim(t3.loc[["Logistic regression", "Random Forest", "XGBoost", "LightGBM"], "auprc"].idxmax() == "LightGBM",
+      "LightGBM has the best pooled AUPRC (the best model of 6.1)")
 best_auprc = t3.loc[["Logistic regression", "Random Forest", "XGBoost", "LightGBM"], "auprc"].max()
 for key, lbl in (("Pers", "Persistence (month t)"), ("PersRt", "Persistence (real time)")):
     m(f"n{key}Auroc", f3(t3.loc[lbl, "auroc"]))
@@ -1082,7 +1084,7 @@ for ax, h in zip(axes, (1, 3)):
     ax.axvline(5, color=GRID, lw=0.8, zorder=0)
     ax.set_xlim(0, 50)
     ax.set_ylim(0, 100)
-    ax.set_title(f"$h$={h}" + (" (nowcast)" if h == 1 else " (1 month ahead)"), fontsize=7.5, color=INK)
+    ax.set_title(f"$h$={h}" + (" (nowcast)" if h == 1 else " (1 month of warning)"), fontsize=7.5, color=INK)
     style(ax)
 axes[0].set_ylabel("Onsets caught (%)", fontsize=7)
 fig.supxlabel("Calm municipalities flagged each month (%)", fontsize=7, color=MUTED, y=0.095)
