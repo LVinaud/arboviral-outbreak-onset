@@ -437,6 +437,9 @@ for h in (1, 3):
     claim(y25("inc100", h, "pooled", "xgb", P1).auroc >= y25("inc100", h, "pooled", "xgb", P0).auroc - 0.005
           and y25("inc100", h, "onset_ref_tm1", "xgb", P1).auroc >= y25("inc100", h, "onset_ref_tm1", "xgb", P0).auroc - 0.005,
           f"2025, inc100, h={h}: as good or better than 2022-2024")
+claim(all(y25("inc100", h, sub, "xgb", P1).auroc >= y25("inc100", h, sub, "xgb", P0).auroc
+          for h in range(1, 7) for sub in ("pooled", "onset_ref_tm1", "continuation_ref_tm1")),
+      "2025, inc100: XGBoost ranks as well or better at every horizon (6.5)")
 claim(y25("canal", 1, "pooled", "rf", P1).auroc < y25("canal", 1, "pooled", "rf", P0).auroc,
       "2025 is weaker under the historical range")
 for h in range(1, 7):
@@ -488,6 +491,10 @@ for (h, ref) in sorted({(a, b) for a, b, _ in g2.index}):
 claim(max(deltas) < 0.02 and not_better == cases,
       "an onset-only model does not rank onsets better ('just as hard' in 6.5)")
 m("nOnsetModelMaxDelta", f3(max(deltas)))
+tab_deltas = [abs(round(g2.loc[(h, ref, f"{mod}_onset")].onset_auroc, 3)
+                  - round(g2.loc[(h, ref, f"{mod}_unico")].onset_auroc, 3))
+              for (h, ref) in {(a, b) for a, b, _ in g2.index} for mod in ("rf", "xgb")]
+claim(f3(max(tab_deltas)) == f3(max(deltas)), "the onset-only maximum matches the rounded Table 12")
 m("nOnsetModelNotBetter", str(not_better))
 m("nOnsetModelCases", str(cases))
 lines = []
@@ -502,7 +509,8 @@ write_table("tab_onsetmodel", r"""
 \begin{table*}[t]
 \centering\small
 \caption{The single model (S) against a model trained only on calm months (O), on
-the same calm test months, dengue, inc100, mean of the test years. Precision at
+the same calm test months, dengue, inc100, mean of the three test years; Table~\ref{tab:onset} pools the three years
+before computing, which is why its random-forest recalls at $h=1$ differ slightly. Precision at
 5\% and recall at 0.5 in per cent.}
 \label{tab:onsetmodel}
 \begin{tabular}{cclcccccccc}
@@ -526,8 +534,14 @@ m("nPastChangedLo", f"{100 * b3lab.pct_changed.min():.0f}")
 m("nPastChangedHi", f"{100 * b3lab.pct_changed.max():.0f}")
 dd = {}
 for d in ("canal", "zscore"):
+    # real-time reference only, as in Table 13 (6.5 says so)
+    c = "onset_auroc_ref_tm1"
     v = [g3.loc[(d, h, mod, "past-only"), c] - g3.loc[(d, h, mod, "paper"), c]
-         for h in (1, 2) for mod in ("rf", "xgb") for c in ("onset_auroc_ref_t", "onset_auroc_ref_tm1")]
+         for h in (1, 2) for mod in ("rf", "xgb")]
+    vt = [round(g3.loc[(d, h, mod, "past-only"), c], 3) - round(g3.loc[(d, h, mod, "paper"), c], 3)
+          for h in (1, 2) for mod in ("rf", "xgb")]
+    claim(f3(min(v)) == f3(min(vt)) and f3(max(v)) == f3(max(vt)),
+          f"{d}: the past-threshold range in 6.5 matches the rounded Table 13")
     dd[d] = (min(v), max(v))
 claim(dd["canal"][0] > 0, "historical range: onset AUROC rises with past-only thresholds")
 m("nPastCanalLo", f3(dd["canal"][0]))
@@ -555,7 +569,8 @@ write_table("tab_past", r"""
 \begin{table*}[t]
 \centering\small
 \caption{Thresholds fitted on the whole series (W) against thresholds from earlier
-years only (P), dengue, mean of the test years. Onset AUROC with the real-time
+years only (P), dengue, mean of the three test years, not pooled as in
+Table~\ref{tab:onset}. Onset AUROC with the real-time
 reference; recall at 0.5 in per cent with the original reference. Below: how the
 test labels change.}
 \label{tab:past}
@@ -593,6 +608,11 @@ xt = g4.loc[(1, "xgb_tuned")]
 m("nTuneXgbOnsetRec", pct(xt.recall_onset_ref_t))
 m("nTuneXgbContRec", pct(xt.recall_cont_ref_t))
 claim(xt.recall_cont_ref_t - xt.recall_onset_ref_t > 0.2, "the gap remains after tuning")
+rf1 = b4[(b4.h == 1) & (b4.model == "rf")]
+rf_pooled = (rf1.recall_onset_ref_t * rf1.n_onset_ref_t).sum() / rf1.n_onset_ref_t.sum()
+claim(abs(rf_pooled - onset04.loc["Random Forest", "recall_onset"]) < 1e-9
+      and pct(rf1.recall_onset_ref_t.mean()) != pct(rf_pooled),
+      "Tables 12 and 14 average the test years; Table 2 pools them (captions)")
 lines = []
 for h in (1, 2):
     for mod, nm in (("rf", "Random forest"), ("xgb", "XGBoost")):
@@ -605,7 +625,8 @@ write_table("tab_tuning", r"""
 \begin{table*}[t]
 \centering\small
 \caption{Fixed configuration (F) against the configuration chosen by random search
-on the year before each test year (T), dengue, inc100, mean of the test years.
+on the year before each test year (T), dengue, inc100, mean of the three test years; Table~\ref{tab:onset} pools the three years
+before computing, which is why its random-forest recalls at $h=1$ differ slightly.
 Onset AUROC with the real-time reference; recall at 0.5 in per cent with the
 original reference.}
 \label{tab:tuning}
@@ -647,6 +668,8 @@ m("nSizeLargeAuroc", f3(rfs.loc["> 200k", "auroc"]))
 m("nSizeLargeN", str(int(rfs.loc["> 200k", "municipalities"])))
 for y, w in ((2022, "TwentyTwo"), (2023, "TwentyThree"), (2024, "TwentyFour")):
     m(f"nFoldRate{w}", pct(labels.loc[labels.ano == y, "dengue_inc100"].mean()))
+claim(labels.groupby("ano")["dengue_inc100"].mean().idxmax() == 2024,
+      "2024 is the largest dengue season in the series (App. M)")
 lines = [f"{mo} & {f3(r.auroc)} & {f3(r.auroc_min)}--{f3(r.auroc_max)} & {pct(r.base_rate)}\\% \\\\"
          for mo, r in season.iterrows()]
 write_table("tab_season", r"""
@@ -748,8 +771,7 @@ write_table("tab_grid", r"""
 \begin{table*}[t]
 \centering\small
 \caption{All eight evaluable disease--definition pairs, random forest. Rate is the
-outbreak rate over the folds that could be scored; lift is AUPRC divided by that
-rate.}
+outbreak rate over the folds that could be scored.}
 \label{tab:grid}
 \begin{tabular}{llcccccc}
 \toprule
@@ -778,6 +800,13 @@ claim(cal(1, "rf", "raw")["mean_gap_0.2_to_0.8"] < -0.05, "the raw random forest
 claim(abs(cal(1, "rf", "calibrated")["mean_gap_0.2_to_0.8"]) < abs(cal(1, "rf", "raw")["mean_gap_0.2_to_0.8"]),
       "calibration reduces the mid-range gap")
 claim(cal(1, "rf", "calibrated").brier < cal(1, "rf", "raw").brier, "calibration lowers the Brier score")
+claim(cal(1, "rf", "calibrated").ece < cal(1, "rf", "raw").ece, "h=1: calibration lowers the random forest's ECE")
+claim(all(cal(1, mod, "calibrated")[c] > cal(1, mod, "raw")[c] for mod in ("xgb", "lgbm") for c in ("brier", "ece")),
+      "h=1: calibration raises Brier and ECE for XGBoost and LightGBM (App. L)")
+claim(all(cal(1, mod, "raw").ece < 0.5 * cal(1, "rf", "raw").ece for mod in ("xgb", "lgbm")),
+      "h=1: raw XGBoost and LightGBM scores were already close to calibrated (App. L)")
+claim(all(cal(3, mod, "calibrated")[c] > cal(3, mod, "raw")[c] for mod in ("rf", "xgb", "lgbm") for c in ("brier", "ece")),
+      "h=3: calibration raises Brier and ECE for all three models (App. L)")
 act = c2act[(c2act.h == 3) & (c2act.model == "xgb") & (c2act.threshold_C_over_L == 0.2)].iloc[0]
 m("nActXgbAlerts", f"{act.alerts_per_month:.0f}")
 m("nActXgbPrec", pct(act.precision))
@@ -949,7 +978,15 @@ rfa = budget_all[budget_all.model == "Random Forest"].set_index("k")
 for k, w in ((25, "TwentyFive"), (100, "Hundred")):
     m(f"nBudAllRfCov{w}", f"{rfa.loc[k, 'recall_%']:.1f}")
     m(f"nBudAllRfPrec{w}", f"{rfa.loc[k, 'precision_%']:.1f}")
-claim(60 <= rfa.loc[25, "precision_%"] <= 70, "two thirds of the 25 supported municipalities are in an outbreak")
+bp = pd.read_parquet(ROOT / "data" / "train" / "predictions" / "dengue_inc100_h1.parquet")
+bp = bp[bp.model == "rf"].merge(
+    labels[["cod_ibge", "ano", "mes", "dengue_inc100"]].rename(columns={"dengue_inc100": "state_t"}),
+    on=["cod_ibge", "ano", "mes"], how="left", validate="m:1")
+top25 = pd.concat(g.nlargest(25, "proba") for _, g in bp.groupby(["ano", "mes"], sort=True))
+claim(abs(100 * top25.y_true.mean() - rfa.loc[25, "precision_%"]) < 1e-9,
+      "the top-25 recount reproduces Table 10")
+claim((top25.loc[top25.y_true == 1, "state_t"] == 1).mean() > 0.5,
+      "most top-25 hits are municipalities already in an outbreak (App. G)")
 per_month = labels[labels["ano"].between(2022, 2024)].groupby(["ano", "mes"])["dengue_inc100"].sum().mean()
 m("nOutbreakMunisMonth", str(int(round(per_month))))
 claim(abs(per_month - 645 * rate) < 5, "outbreak municipalities per test month match the outbreak rate")
