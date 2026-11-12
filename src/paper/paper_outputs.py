@@ -485,6 +485,8 @@ for (h, ref) in sorted({(a, b) for a, b, _ in g2.index}):
         deltas.append(abs(o.onset_auroc - u.onset_auroc))
         not_better += int(o.precision_at_5pct <= u.precision_at_5pct)
         cases += 1
+claim(max(deltas) < 0.02 and not_better == cases,
+      "an onset-only model does not rank onsets better ('just as hard' in 6.5)")
 m("nOnsetModelMaxDelta", f3(max(deltas)))
 m("nOnsetModelNotBetter", str(not_better))
 m("nOnsetModelCases", str(cases))
