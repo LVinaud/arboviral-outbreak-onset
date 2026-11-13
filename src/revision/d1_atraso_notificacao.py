@@ -10,38 +10,40 @@ filtro do 02_master), sem filtrar pela classificação. Para cada ano:
 É o que justifica cortar a série no último mês com 60 dias para consolidar.
 
 Precisa dos arquivos brutos, que não estão no repositório (estão no depósito do
-Zenodo citado no README). A saída fica versionada em data/master/, ao lado da
-tabela que o 02 monta a partir do mesmo bruto.
+Zenodo citado no README). Lê o .dbc do DATASUS ou o .dbf.gz que o 01 guarda só
+com as colunas usadas (src/coleta/colunas_usadas.py). A saída fica versionada em
+data/master/, ao lado da tabela que o 02 monta a partir do mesmo bruto.
 """
-import tempfile
+import sys
 from pathlib import Path
 
 import dbfread
 import numpy as np
 import pandas as pd
-from pyreaddbc import dbc2dbf
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "src" / "coleta"))
+from colunas_usadas import abrir_dbf, arquivos_dbf  # noqa: E402
 RAW = sorted(p for p in (ROOT / "data" / "raw").iterdir() if p.is_dir())[-1]
 OUT = ROOT / "data" / "master" / "notification_delay.csv"
 
 
 def ler(path):
-    with tempfile.NamedTemporaryFile(suffix=".dbf", delete=False) as tmp:
-        dbf = tmp.name
-    dbc2dbf(str(path), dbf)
     linhas = []
-    for rec in dbfread.DBF(dbf, encoding="latin1", load=False):
-        if str(rec.get("SG_UF", "")).strip() != "35":
-            continue
-        linhas.append((rec.get("DT_NOTIFIC"), rec.get("DT_ENCERRA"), rec.get("CLASSI_FIN")))
-    Path(dbf).unlink(missing_ok=True)
+    with abrir_dbf(path) as dbf:
+        for rec in dbfread.DBF(str(dbf), encoding="latin1", load=False):
+            if str(rec.get("SG_UF", "")).strip() != "35":
+                continue
+            linhas.append((rec.get("DT_NOTIFIC"), rec.get("DT_ENCERRA"), rec.get("CLASSI_FIN")))
     return pd.DataFrame(linhas, columns=["notific", "encerra", "classi"])
+
+
+DENGUE = {p.name[:8].upper(): p for p in arquivos_dbf(RAW / "sinan", "DENGBR")}
 
 
 res = []
 for ano in (2022, 2023):
-    d = ler(RAW / "sinan" / f"DENGBR{str(ano)[-2:]}.dbc")
+    d = ler(DENGUE[f"DENGBR{str(ano)[-2:]}"])
     notif = pd.to_datetime(d["notific"], errors="coerce")
     enc = pd.to_datetime(d["encerra"], errors="coerce")
     dias = (enc - notif).dt.days
