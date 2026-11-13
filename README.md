@@ -44,7 +44,7 @@ tables `02` assembles them from, and `notification_delay.csv` (Section 2 of the
 paper).
 
 **The raw downloads used for the paper (collected on 9 September 2026) are at
-Zenodo**, DOI: *to be added on publication of the record*. The government portals
+Zenodo**, DOI [10.5281/zenodo.24181340](https://doi.org/10.5281/zenodo.24181340). The government portals
 revise past files, so a collection run today gives a slightly different table;
 the archive is what lets `02` rebuild `data/master/` exactly. Extract it into
 `data/raw/` (instructions in the record).
