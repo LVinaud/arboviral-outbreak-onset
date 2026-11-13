@@ -14,7 +14,7 @@ PT = {
     "alertas.m_ja_em_surto": "Já em surto no mês observado",
     "alertas.legenda_cartoes": "Alto e Crítico são os municípios com surto previsto. "
                                "Os intervalos de escore mudam com a doença, a "
-                               "definição, a antecedência e o modelo; a aba Sobre "
+                               "definição, o horizonte e o modelo; a aba Sobre "
                                "explica de onde vêm. Abra um município para ver o "
                                "que costuma fazer sentido na faixa dele.",
     "alertas.filtro_sem_surto": "Só municípios que não estão em surto no momento",
@@ -54,7 +54,7 @@ trabalho mede. Prever que um surto continua é fácil, porque a contagem de caso
 do mês já diz quase tudo. Prever que um surto começa é o que muda o que uma
 secretaria consegue fazer, e é onde o modelo acerta bem menos.
 
-A antecedência conta a partir do último mês com dados consolidados, não a
+O horizonte conta a partir do último mês com dados consolidados, não a
 partir de hoje. Como a série termina em {obs}, o tempo real de preparo é menor
 que {antecedencia}.
 """,
@@ -74,7 +74,7 @@ EN = {
     "alertas.m_ja_em_surto": "Already in outbreak",
     "alertas.legenda_cartoes": "High and Critical are the municipalities with an "
                                "outbreak forecast. The score ranges change with the "
-                               "disease, the definition, the lead time and the model; "
+                               "disease, the definition, the horizon and the model; "
                                "the About page explains where they come from. Open a "
                                "municipality to see what usually makes sense at its "
                                "level.",
@@ -116,7 +116,7 @@ because the month's case count already says almost everything. Forecasting that
 an outbreak starts is what changes what a health department can do, and it is
 where the model does much worse.
 
-The lead time counts from the last month with consolidated data, not from today.
+The horizon counts from the last month with consolidated data, not from today.
 Since the series ends in {obs}, the real preparation time is shorter than
 {antecedencia}.
 """,

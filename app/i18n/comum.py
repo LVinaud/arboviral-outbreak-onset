@@ -59,15 +59,15 @@ PT = {
     "sel.doenca": "Doença",
     "sel.definicao": "Definição de surto",
     "sel.o_que_conta": "O que conta como surto",
-    "sel.antecedencia": "Antecedência",
+    "sel.antecedencia": "Horizonte (meses à frente)",
     "sel.modelo": "Modelo",
     "sel.municipio": "Município",
     "sel.antecedencia_indisponivel": "{pedido} não está disponível nesta combinação; "
                                      "mostrando {mostrada}.",
     "sel.modelo_indisponivel": "{modelo} não está disponível nesta combinação: não "
                                "passou no critério de qualidade (aba Sobre).",
-    "comum.frase_corte": "com {antecedencia} de antecedência, este modelo prevê surto "
-                         "a partir do escore {corte}",
+    "comum.frase_corte": "{antecedencia} à frente do mês dos dados, este modelo prevê "
+                         "surto a partir do escore {corte}",
 
     # ------------------------------------------------------------ faixas
     "faixa.a_partir_de": "a partir de {a}",
@@ -219,15 +219,15 @@ EN = {
     "sel.doenca": "Disease",
     "sel.definicao": "Outbreak definition",
     "sel.o_que_conta": "What counts as an outbreak",
-    "sel.antecedencia": "Lead time",
+    "sel.antecedencia": "Months ahead",
     "sel.modelo": "Model",
     "sel.municipio": "Municipality",
     "sel.antecedencia_indisponivel": "{pedido} is not available for this combination; "
                                      "showing {mostrada}.",
     "sel.modelo_indisponivel": "{modelo} is not available for this combination: it did "
                                "not pass the quality criterion (see About).",
-    "comum.frase_corte": "with {antecedencia} of lead time, this model forecasts an "
-                         "outbreak from a score of {corte}",
+    "comum.frase_corte": "{antecedencia} ahead of the data month, this model forecasts "
+                         "an outbreak from a score of {corte}",
 
     # ------------------------------------------------------------ faixas
     "faixa.a_partir_de": "{a} and above",

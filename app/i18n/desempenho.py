@@ -9,7 +9,7 @@ PT = {
                        "(`limiares_operacao.parquet`). Rode essa seção para gerá-los.",
     "des.sem_padroes": "As combinações padrão não estão no arquivo de cortes.",
     "des.padroes_titulo": "As combinações que o aplicativo abre por padrão",
-    "des.previsoes_com": "Previsões feitas com {antecedencia} de antecedência.",
+    "des.previsoes_com": "Previsões feitas {antecedencia} à frente.",
 
     "des.metrica.precisao": "Precisão",
     "des.metrica.cobertura": "Cobertura",
@@ -69,14 +69,14 @@ PT = {
                              "isso os dois números podem ficar um pouco abaixo do que "
                              "esse corte daria.",
 
-    "des.horizonte_titulo": "Quanto o sinal sobrevive à antecedência",
+    "des.horizonte_titulo": "Quanto o sinal sobrevive ao horizonte",
     "des.horizonte_intro": "Quanto mais longe a previsão, menos o modelo sabe. Os "
                            "gráficos mostram os quatro números de cada doença de 1 a 6 "
-                           "meses de antecedência, com as mesmas cores de cima. A linha "
-                           "tracejada marca a antecedência escolhida no topo da página.",
-    "des.eixo_antecedencia": "Antecedência (meses)",
+                           "meses à frente, com as mesmas cores de cima. A linha "
+                           "tracejada marca o horizonte escolhido no topo da página.",
+    "des.eixo_antecedencia": "Horizonte (meses à frente)",
     "des.dica_metrica": "Métrica",
-    "des.dica_antecedencia": "Antecedência",
+    "des.dica_antecedencia": "Horizonte",
     "des.dica_valor": "Valor",
     "des.horizonte_resumo": "De {de} para {para}: precisão de {p1} para {p2}, cobertura "
                             "de {c1} para {c2} e AUROC de {a1} para {a2}.",
@@ -87,7 +87,7 @@ PT = {
     "des.dengue_precisao": "**Na dengue, quem paga a distância é a precisão.** Mais "
                            "longe, o modelo fica menos seguro sobre todos os municípios "
                            "ao mesmo tempo e os escores descem. O corte é escolhido de "
-                           "novo para cada antecedência e desce junto, de {c1} em {h1} "
+                           "novo para cada horizonte e desce junto, de {c1} em {h1} "
                            "para {c2} em {h2}. Isso segura a cobertura ({r1} para {r2}), "
                            "mas o modelo passa a avisar mais municípios que não terão "
                            "surto, e a precisão cai de {p1} para {p2}.",
@@ -164,15 +164,15 @@ EN = {
                              "same three years, so these two numbers may come out a "
                              "little below what that cut would give.",
 
-    "des.horizonte_titulo": "How much signal survives the lead time",
+    "des.horizonte_titulo": "How much signal survives the horizon",
     "des.horizonte_intro": "The further ahead the forecast, the less the model knows. "
                            "The charts show each disease's four numbers from 1 to 6 "
-                           "months of lead time, in the same colours as above. The "
-                           "dashed line marks the lead time chosen at the top of the "
+                           "months ahead, in the same colours as above. The "
+                           "dashed line marks the horizon chosen at the top of the "
                            "page.",
-    "des.eixo_antecedencia": "Lead time (months)",
+    "des.eixo_antecedencia": "Months ahead",
     "des.dica_metrica": "Metric",
-    "des.dica_antecedencia": "Lead time",
+    "des.dica_antecedencia": "Months ahead",
     "des.dica_valor": "Value",
     "des.horizonte_resumo": "From {de} to {para}: precision from {p1} to {p2}, recall "
                             "from {c1} to {c2} and AUROC from {a1} to {a2}.",
@@ -184,7 +184,7 @@ EN = {
     "des.dengue_precisao": "**For dengue, precision pays for the distance.** Further "
                            "ahead, the model is less sure about every municipality at "
                            "once and the scores drop. The cut is chosen again for each "
-                           "lead time and drops with them, from {c1} at {h1} to {c2} at "
+                           "horizon and drops with them, from {c1} at {h1} to {c2} at "
                            "{h2}. That holds recall steady ({r1} to {r2}), but the model "
                            "starts alerting on more municipalities that will not have an "
                            "outbreak, and precision falls from {p1} to {p2}.",

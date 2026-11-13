@@ -16,7 +16,7 @@ PT = {
     "mun.m_faixa_ajuda": "Nesta combinação: Crítico a partir de {critico}, Alto a partir "
                          "de {alto}, Moderado a partir de {moderado}.",
     "mun.m_previsto": "Surto previsto?",
-    "mun.m_previsto_ajuda": "{frase}. O corte muda com o modelo e com a antecedência; a "
+    "mun.m_previsto_ajuda": "{frase}. O corte muda com o modelo e com o horizonte; a "
                             "aba Sobre explica por quê.",
     "mun.m_mes": "Mês previsto",
     "mun.m_mes_ajuda": "Calculado com dados até {obs}.",
@@ -85,7 +85,7 @@ PT = {
     "mun.viz_intro": "Os {n} municípios mais próximos de {nome}. O mosquito não respeita "
                      "divisa: o que acontece ao lado importa mesmo quando o vizinho tem "
                      "outro tamanho. Faixa e escore são da mesma doença, definição, "
-                     "antecedência e modelo escolhidos no topo.",
+                     "horizonte e modelo escolhidos no topo.",
     "mun.viz_este": "{nome} (este município)",
     "mun.viz_col_municipio": "Município",
     "mun.viz_col_distancia": "Distância",
@@ -114,7 +114,7 @@ EN = {
     "mun.m_faixa_ajuda": "In this combination: Critical from {critico}, High from {alto}, "
                          "Moderate from {moderado}.",
     "mun.m_previsto": "Outbreak forecast?",
-    "mun.m_previsto_ajuda": "{frase}. The cut changes with the model and the lead time; "
+    "mun.m_previsto_ajuda": "{frase}. The cut changes with the model and the horizon; "
                             "the About page explains why.",
     "mun.m_mes": "Forecast month",
     "mun.m_mes_ajuda": "Computed with data up to {obs}.",
@@ -185,7 +185,7 @@ EN = {
     "mun.viz_intro": "The {n} municipalities closest to {nome}. Mosquitoes do not respect "
                      "borders: what happens next door matters even when the neighbour is "
                      "a different size. Level and score use the same disease, "
-                     "definition, lead time and model chosen at the top.",
+                     "definition, horizon and model chosen at the top.",
     "mun.viz_este": "{nome} (this one)",
     "mun.viz_col_municipio": "Municipality",
     "mun.viz_col_distancia": "Distance",

@@ -16,7 +16,7 @@ PT = {
     "estado.dica_escore": "Escore",
     "estado.dica_populacao": "População",
     "estado.mapa_legenda": "Clique num círculo para abrir o município, com a mesma "
-                           "doença, definição, antecedência e modelo. Cor pela faixa de "
+                           "doença, definição, horizonte e modelo. Cor pela faixa de "
                            "risco, tamanho pela população. O mapa mistura de propósito "
                            "uma cidade de meio milhão com uma de três mil habitantes: "
                            "risco e porte são perguntas diferentes, e o tamanho existe "
@@ -95,7 +95,7 @@ EN = {
     "estado.dica_escore": "Score",
     "estado.dica_populacao": "Population",
     "estado.mapa_legenda": "Click a circle to open the municipality, with the same "
-                           "disease, definition, lead time and model. Colour shows the "
+                           "disease, definition, horizon and model. Colour shows the "
                            "risk level, size shows the population. The map mixes a city "
                            "of half a million with a town of three thousand on purpose: "
                            "risk and size are different questions, and size is there so "

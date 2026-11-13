@@ -22,7 +22,7 @@ indicadores fiscais e de desenvolvimento, e cobertura vacinal de febre amarela.
 fila de atenção. Uma probabilidade convida a uma aposta; um escore convida a
 uma comparação, que é o uso correto.
 
-**A antecedência é nominal.** Ela conta a partir do último mês com dados
+**O horizonte é nominal.** Ele conta a partir do último mês com dados
 consolidados, e não a partir de hoje. Uma notificação leva tempo para ser
 classificada como confirmada ou descartada, então a série termina no último mês
 que teve sessenta dias para consolidar. O tempo real de preparo é menor que o
@@ -38,7 +38,7 @@ escondida no código.
 ### Por que algumas combinações não aparecem
 
 Os modelos foram treinados para quatro doenças, quatro definições de surto e
-seis antecedências. A plataforma só mostra o que passou em dois critérios.
+seis horizontes. A plataforma só mostra o que passou em dois critérios.
 
 **1. Foi possível verificar se o modelo acerta.** Para isso, precisa ter havido
 surto em pelo menos um dos anos usados para teste (2022, 2023 e 2024). Por esse
@@ -56,7 +56,7 @@ alertas custariam à secretaria mais em alarmes falsos do que ajudariam.
 Por esse critério saem:
 
 - a **dengue** com o canal endêmico e com a definição por desvios da média, de
-  4 a 6 meses de antecedência (nessas combinações, o melhor modelo ficou entre
+  4 a 6 meses à frente (nessas combinações, o melhor modelo ficou entre
   0,64 e 0,68);
 - a **chikungunya** com as definições de mais de 100 casos por 100 mil
   habitantes (de 3 a 6 meses) e de mais de 300 (5 e 6 meses);
@@ -64,7 +64,7 @@ Por esse critério saem:
   regressão logística. Eles simplesmente não aparecem no seletor.
 
 O critério vale para cada modelo em cada combinação. O modelo padrão de cada
-doença passa em todas as antecedências.
+doença passa em todos os horizontes.
 
 A febre amarela continua entrando nos modelos das outras doenças, pela
 cobertura vacinal e pelo histórico de casos, mas não tem alerta próprio.
@@ -72,11 +72,11 @@ cobertura vacinal e pelo histórico de casos, mas não tem alerta próprio.
 ### Modelo e definição de cada doença
 
 Cada doença abre com o modelo e a definição que tiveram melhor resultado nos
-anos de teste, com atenção especial às antecedências de 4 a 6 meses:
+anos de teste, com atenção especial aos horizontes de 4 a 6 meses:
 
 - **Dengue:** XGBoost, com surto definido como mais de 100 casos por 100 mil
-  habitantes. O XGBoost foi o melhor em todas as antecedências.
-- **Zika:** Random Forest, com o canal endêmico. Com 6 meses de antecedência,
+  habitantes. O XGBoost foi o melhor em todos os horizontes.
+- **Zika:** Random Forest, com o canal endêmico. Com horizonte de 6 meses,
   o Random Forest separou melhor os municípios que tiveram surto (AUROC 0,957,
   contra 0,868 do XGBoost).
 - **Chikungunya:** Random Forest, com o canal endêmico.
@@ -92,7 +92,7 @@ nos seletores de cada tela.
 do mês mais recente (casos recentes das quatro doenças, clima, época do ano,
 saneamento, cobertura de saúde, população, entre outras) e devolve um número
 entre 0 e 1. Quanto maior o número, mais o município se parece com os que, no
-passado, tiveram surto com aquela antecedência. O modelo que gera a previsão
+passado, tiveram surto com aquele horizonte. O modelo que gera a previsão
 atual aprendeu com todos os meses de 2015 até o último mês consolidado.
 
 **Como cada modelo chega ao número.**
@@ -119,11 +119,11 @@ logística. Um escore de 0,30 é alto para o XGBoost e baixo para a regressão
 logística. Por isso o escore só tem significado quando comparado com o corte do
 próprio modelo.
 
-O corte também muda com a antecedência. Nos três modelos de árvores, quanto
+O corte também muda com o horizonte. Nos três modelos de árvores, quanto
 mais distante a previsão, menos seguro o modelo fica e mais baixos ficam os
 escores de todos os municípios: o corte típico do Random Forest cai de 0,60 com
 um mês para 0,30 com seis meses. Com um corte fixo em 0,50, o Random Forest
-avisaria sobre 28% dos surtos com seis meses de antecedência; com o corte
+avisaria sobre 28% dos surtos seis meses à frente; com o corte
 próprio, avisa sobre 57% (valores medianos entre as combinações). Na regressão
 logística é o contrário: o corte fica acima de 0,50, e um 0,50 fixo daria
 alarmes falsos demais. O corte não serve para avisar mais ou menos, e sim para
@@ -136,7 +136,7 @@ coisas: avisar sobre o maior número possível de surtos que de fato
 aconteceram, e dar o menor número possível de alarmes falsos. O corte final é o
 valor do meio entre os três anos, para que um ano fora do comum, como a grande
 epidemia de 2024, não decida sozinho. Isso é feito separadamente para cada
-combinação de doença, definição de surto, antecedência e modelo, num total de
+combinação de doença, definição de surto, horizonte e modelo, num total de
 240 cortes.
 
 Uma ressalva: o corte é medido com essas versões de teste, e o modelo que gera
@@ -173,7 +173,7 @@ reproduzir as métricas gravadas em disco com quatro casas decimais.
 """,
     "sobre.cortes_titulo": "Os cortes de cada combinação",
     "sobre.cortes_intro": "Escore a partir do qual cada modelo prevê surto, para cada "
-                          "antecedência. As faixas saem desses números pela regra acima.",
+                          "horizonte. As faixas saem desses números pela regra acima.",
     "sobre.cortes_legenda": "— indica modelo que não passou no critério de qualidade e "
                             "não aparece no aplicativo nessa combinação.",
     "sobre.autoria_titulo": "Autoria",
@@ -208,7 +208,7 @@ vaccination coverage.
 in the attention queue. A probability invites a bet; a score invites a
 comparison, which is the right use.
 
-**The lead time is nominal.** It counts from the last month with consolidated
+**The horizon is nominal.** It counts from the last month with consolidated
 data, not from today. A notification takes time to be classified as confirmed or
 discarded, so the series ends at the last month that has had sixty days to
 consolidate. The real preparation time is shorter than the chosen horizon.
@@ -222,8 +222,8 @@ screen and not hidden in the code.
 
 ### Why some combinations do not appear
 
-The models were trained for four diseases, four outbreak definitions and six lead
-times. The platform only shows what passed two criteria.
+The models were trained for four diseases, four outbreak definitions and six
+horizons. The platform only shows what passed two criteria.
 
 **1. It was possible to check whether the model is right.** That requires at
 least one outbreak in the test years (2022, 2023 and 2024). This criterion leaves
@@ -241,7 +241,7 @@ health department more in false alarms than they would help.
 This criterion removes:
 
 - **dengue** under the historical range and standard score definitions, at 4 to
-  6 months of lead time (in these combinations, the best model scored between
+  6 months ahead (in these combinations, the best model scored between
   0.64 and 0.68);
 - **chikungunya** under the more than 100 cases per 100,000 residents definition
   (3 to 6 months) and the more than 300 definition (5 and 6 months);
@@ -249,7 +249,7 @@ This criterion removes:
   regression. They simply do not appear in the selector.
 
 The criterion applies to each model in each combination. Each disease's default
-model passes at every lead time.
+model passes at every horizon.
 
 Yellow fever still feeds into the models of the other diseases, through
 vaccination coverage and case history, but it has no alert of its own.
@@ -257,11 +257,11 @@ vaccination coverage and case history, but it has no alert of its own.
 ### Model and definition for each disease
 
 Each disease opens with the model and definition that did best in the test
-years, with special attention to lead times of 4 to 6 months:
+years, with special attention to horizons of 4 to 6 months:
 
 - **Dengue:** XGBoost, with an outbreak defined as more than 100 cases per
-  100,000 residents. XGBoost was the best at every lead time.
-- **Zika:** Random Forest, with the endemic channel. With 6 months of lead time,
+  100,000 residents. XGBoost was the best at every horizon.
+- **Zika:** Random Forest, with the endemic channel. Six months ahead,
   Random Forest best separated the municipalities that had an outbreak (AUROC
   0.957, against 0.868 for XGBoost).
 - **Chikungunya:** Random Forest, with the endemic channel.
@@ -277,8 +277,8 @@ selectors on each page.
 pieces of information from the latest month (recent cases of the four diseases,
 weather, time of year, sanitation, health coverage, population, among others)
 and returns a number between 0 and 1. The higher the number, the more the
-municipality resembles those that, in the past, had an outbreak with that lead
-time. The model behind the current forecast learned from every month from 2015
+municipality resembles those that, in the past, had an outbreak at that
+horizon. The model behind the current forecast learned from every month from 2015
 to the last consolidated month.
 
 **How each model arrives at the number.**
@@ -304,7 +304,7 @@ XGBoost, 0.43 for Random Forest and 0.80 for logistic regression. A score of 0.3
 is high for XGBoost and low for logistic regression. That is why a score only
 means something compared with its own model's cut.
 
-The cut also changes with the lead time. In the three tree models, the further
+The cut also changes with the horizon. In the three tree models, the further
 ahead the forecast, the less sure the model is and the lower every
 municipality's score gets: Random Forest's typical cut falls from 0.60 at one
 month to 0.30 at six months. With a fixed cut of 0.50, Random Forest would flag
@@ -320,7 +320,7 @@ the outbreaks that actually happened as possible, and raising as few false
 alarms as possible. The final cut is the middle value across the three years, so
 that an unusual year, like the large 2024 epidemic, does not decide on its own.
 This is done separately for each combination of disease, outbreak definition,
-lead time and model, 240 cuts in total.
+horizon and model, 240 cuts in total.
 
 One caveat: the cut is measured with these test versions, and the model behind
 the current forecast was trained on all years. We assume it spreads the scores
@@ -357,7 +357,7 @@ on disk to four decimal places.
 """,
     "sobre.cortes_titulo": "The cuts for each combination",
     "sobre.cortes_intro": "Score at which each model forecasts an outbreak, for each "
-                          "lead time. The levels come from these numbers by the rule "
+                          "horizon. The levels come from these numbers by the rule "
                           "above.",
     "sobre.cortes_legenda": "— marks a model that did not pass the quality criterion and "
                             "does not appear in the app for that combination.",
