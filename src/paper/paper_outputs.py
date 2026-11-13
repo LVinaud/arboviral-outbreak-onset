@@ -8,6 +8,11 @@ Reads the tables of 04_results (data/train/tables), the analyses of
   figuras/{timeline,realtime_by_horizon,alert_tradeoff,calibration_isotonic}.pdf
   paper/abstract_openreview.txt   the abstract as plain text
 
+paper/ is not versioned: the LaTeX source of the paper is kept outside the
+repository. Without paper/main.tex, everything above except the plain-text
+abstract is written and every claim is checked as usual; only the abstract and
+the check that every macro the text uses is defined are skipped.
+
 Every qualitative claim the text makes about these numbers ("outperforms at every
 horizon", "both are below the pooled score", ...) is asserted here, so a rerun that
 changes a number enough to break a sentence stops instead of producing a PDF that
@@ -1208,20 +1213,26 @@ def plain(tex):
     return re.sub(r"\s+", " ", tex).strip()
 
 
-src = (PAPER / "main.tex").read_text()
-ab = src.split("\\begin{abstract}")[1].split("\\end{abstract}")[0]
-txt = "\n\n".join(plain(par) for par in re.split(r"\n\s*\n", ab) if par.strip()) + "\n"
-assert "\\" not in txt, "a LaTeX command survived in the plain-text abstract"
-(PAPER / "abstract_openreview.txt").write_text(txt)
-WRITTEN.append("paper/abstract_openreview.txt")
+# The LaTeX source is not in the repository. When it is in paper/, the abstract is
+# also written as plain text, and every macro the text uses must be defined.
+unused = []
+if (PAPER / "main.tex").exists():
+    src = (PAPER / "main.tex").read_text()
+    ab = src.split("\\begin{abstract}")[1].split("\\end{abstract}")[0]
+    txt = "\n\n".join(plain(par) for par in re.split(r"\n\s*\n", ab) if par.strip()) + "\n"
+    assert "\\" not in txt, "a LaTeX command survived in the plain-text abstract"
+    (PAPER / "abstract_openreview.txt").write_text(txt)
+    WRITTEN.append("paper/abstract_openreview.txt")
 
-# Every macro the paper uses must be defined, and every defined macro used.
-used = set()
-for f in ("main.tex", "appendix.tex", *[f"tables/{p.name}" for p in TABOUT.glob("*.tex")]):
-    used |= set(re.findall(r"\\(n[A-Z][A-Za-z]*)", (PAPER / f).read_text()))
-missing = sorted(used - set(MACROS))
-unused = sorted(set(MACROS) - used)
-assert not missing, f"macros used but not defined: {missing}"
+    used = set()
+    for f in ("main.tex", "appendix.tex", *[f"tables/{p.name}" for p in TABOUT.glob("*.tex")]):
+        used |= set(re.findall(r"\\(n[A-Z][A-Za-z]*)", (PAPER / f).read_text()))
+    missing = sorted(used - set(MACROS))
+    unused = sorted(set(MACROS) - used)
+    assert not missing, f"macros used but not defined: {missing}"
+else:
+    print("paper/main.tex not found (the LaTeX source is not in the repository): "
+          "plain-text abstract and macro check skipped")
 
 print(f"{len(MACROS)} macros, {len(CLAIMS)} claims checked")
 if unused:

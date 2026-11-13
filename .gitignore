@@ -3,17 +3,12 @@
 __pycache__/
 .ipynb_checkpoints/
 
-# --- Working folder with the reviews and third-party PDFs: never versioned.
-# The paper itself lives in paper/. ---
+# --- Working folder with the reviews and third-party PDFs: never versioned. ---
 artigo/
 
-# --- LaTeX build output of paper/ (the PDF is rebuilt from the source) ---
-paper/*.aux
-paper/*.bbl
-paper/*.blg
-paper/*.out
-paper/*.pdf
-paper/*.synctex.gz
+# --- The LaTeX source of the paper is kept outside the repository.
+# 06_paper_outputs writes paper/numbers.tex and paper/tables/ for it. ---
+paper/
 
 # --- Raw collection: ~4.8 GB, fully reproducible by 01_data_collection ---
 data/raw
