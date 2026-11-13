@@ -26,8 +26,12 @@ REF="${1:-HEAD}"
 WORK="${2:-$(mktemp -d -t arboviral-check-XXXXXX)}"
 SRC="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 COMMIT="$(git -C "$SRC" rev-parse "$REF")"
-LOG="$WORK/check.log"
 mkdir -p "$WORK/repo" "$WORK/committed"
+# Relative paths are taken from the folder the script is called from.
+WORK="$(cd "$WORK" && pwd)"
+[[ -z "${ARBOVIRAL_RAW:-}" ]] || ARBOVIRAL_RAW="$(cd "$ARBOVIRAL_RAW" && pwd)"
+[[ -z "${PAPER_DIR:-}" ]] || PAPER_DIR="$(cd "$PAPER_DIR" && pwd)"
+LOG="$WORK/check.log"
 exec > >(tee -a "$LOG") 2>&1
 
 echo "== Checking $REF ($COMMIT) in $WORK"
@@ -43,7 +47,6 @@ test ! -e paper || { echo "paper/ should not be in the archive"; exit 1; }
 # The LaTeX source, if given: a pristine copy to compare against, and a copy in the
 # repository without the files 06 writes and without any LaTeX build output.
 if [[ -n "${PAPER_DIR:-}" ]]; then
-  PAPER_DIR="$(cd "$PAPER_DIR" && pwd)"
   test -f "$PAPER_DIR/main.tex" || { echo "PAPER_DIR has no main.tex"; exit 1; }
   cp -r "$PAPER_DIR" "$WORK/committed/paper"
   cp -r "$PAPER_DIR" paper
