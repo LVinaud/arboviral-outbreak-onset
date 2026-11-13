@@ -49,6 +49,12 @@ revise past files, so a collection run today gives a slightly different table;
 the archive is what lets `02` rebuild `data/master/` exactly. Extract it into
 `data/raw/` (instructions in the record).
 
+`01` removes personal columns the project does not use as soon as each file is
+downloaded (`src/coleta/colunas_pessoais.py`): the patient's postal code and the
+CPF fields from SIH-SUS, the owner's CPF or CNPJ from CNES beds, and the mother's
+date of birth from SINASC. Those files are kept as a gzip-compressed DBF
+(`.dbf.gz`) instead of the DATASUS `.dbc`, with every other value as published.
+
 `data/lookup/` holds three small tables that cannot be downloaded
 programmatically: the weather-station mapping used by `01`, and the human
 development and inequality indices, which are published as a report.
