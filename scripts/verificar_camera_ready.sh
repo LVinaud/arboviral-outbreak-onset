@@ -11,9 +11,10 @@
 #                  delay script are rerun too and data/master is compared.
 #   PAPER_DIR      optional: path to the LaTeX source of the paper, which is not in
 #                  the repository. When set, the numbers.tex, tables and plain-text
-#                  abstract written by 06 are compared with the ones there, the PDF
-#                  is compiled and its warnings listed, and every numeric literal
-#                  left in the LaTeX source is listed for review.
+#                  abstract written by 06 are compared with the ones there, and the
+#                  PDF is compiled and its warnings listed. If PAPER_DIR also holds
+#                  lint_numeros.py, every numeric literal left in the LaTeX source
+#                  is listed for review.
 #
 # Steps: git archive of REF into WORKDIR/repo; a new virtualenv with
 # requirements.txt; notebooks 03, 04, 05 and 06 executed top to bottom (02 too
@@ -123,8 +124,10 @@ else
   echo "   overfull boxes: $(grep -c 'Overfull' paper/main.log || true)"
   grep -E "Warning" paper/main.log | grep -v "Font shape" | sort | uniq -c || true
 
-  echo "== Numeric literals left in the LaTeX source"
-  "$PY" scripts/lint_numeros.py paper/main.tex paper/appendix.tex
+  if [[ -f paper/lint_numeros.py ]]; then
+    echo "== Numeric literals left in the LaTeX source"
+    "$PY" paper/lint_numeros.py paper/main.tex paper/appendix.tex
+  fi
 fi
 
 date

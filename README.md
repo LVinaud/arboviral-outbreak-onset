@@ -100,9 +100,7 @@ It copies the tagged commit, creates a new virtualenv, runs the notebooks, and
 compares every file in `figuras/` (and `data/master/`, with `ARBOVIRAL_RAW`) byte
 for byte. With `PAPER_DIR` set to a folder with the LaTeX source, it also compares
 `paper/numbers.tex`, `paper/tables/` and the plain-text abstract with the ones
-there, compiles the PDF, lists the LaTeX warnings, and lists every numeric literal
-left in the LaTeX source (`scripts/lint_numeros.py`), which should only be design
-parameters, years and numbers quoted from other papers.
+there, compiles the PDF and lists the LaTeX warnings.
 
 **Seeds.** Every model is fitted with `random_state=42`. The bootstrap over
 municipalities, the random hyperparameter search and the tie-breaking in the alert
